@@ -131,6 +131,7 @@ function layoutBranchTree(
       id: commit.sha,
       type: 'commit',
       position: { x: lane * LANE_WIDTH, y: row * ROW_HEIGHT },
+      style: { width: 280, height: 70 },
       data: {
         sha: commit.sha,
         message: commit.commit.message,

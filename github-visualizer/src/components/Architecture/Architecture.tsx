@@ -33,8 +33,8 @@ const TIER_LAYOUT: Record<string, { tier: number; order: number }> = {
 };
 
 const TIER_X_START = 100;
-const TIER_Y_GAP = 200;
-const NODE_X_GAP = 320;
+const TIER_Y_GAP = 280;
+const NODE_X_GAP = 400;
 
 function layoutArchitecture(
   components: ReturnType<typeof detectArchitecture>['components'],
@@ -63,6 +63,7 @@ function layoutArchitecture(
         id: comp.id,
         type: 'arch',
         position: { x: startX + i * NODE_X_GAP, y: tier * TIER_Y_GAP },
+        style: { width: 220, height: 170 },
         data: {
           label: comp.label,
           tech: comp.tech,
