@@ -123,6 +123,7 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
   } | null>(null);
 
   const hoveredRef = useRef<string | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const initialNodes = useMemo(() => layoutNodes(graphNodes, graphEdges), [graphNodes, graphEdges]);
   const initialEdges = useMemo(() => buildEdges(graphEdges), [graphEdges]);
@@ -245,10 +246,18 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
   }, []);
 
   const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
-    applyHover(node.id);
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoveredRef.current = node.id;
+    hoverTimerRef.current = setTimeout(() => {
+      if (hoveredRef.current === node.id) {
+        applyHover(node.id);
+      }
+    }, 400);
   }, [applyHover]);
 
   const onNodeMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoveredRef.current = null;
     applyHover(null);
   }, [applyHover]);
 
