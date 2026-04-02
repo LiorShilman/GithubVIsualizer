@@ -30,6 +30,12 @@ export function Tabs({ active, onChange }: TabsProps) {
         active={active}
         onClick={onChange}
       />
+      <TabButton
+        label="Architecture"
+        value="architecture"
+        active={active}
+        onClick={onChange}
+      />
     </div>
   );
 }

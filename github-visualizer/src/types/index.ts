@@ -83,5 +83,22 @@ export interface GitHubCommit {
   parents: { sha: string }[];
 }
 
+export interface ArchComponent {
+  id: string;
+  type: 'frontend' | 'backend' | 'database' | 'api' | 'auth' | 'cache' | 'storage' | 'external' | 'ci' | 'testing';
+  label: string;
+  tech: string;
+  icon: string;
+  files: string[];
+}
+
+export interface ArchConnection {
+  from: string;
+  to: string;
+  label: string;
+  protocol: string;
+  animated: boolean;
+}
+
 export type AppStatus = 'idle' | 'loading' | 'success' | 'error';
-export type ActiveTab = 'tree' | 'graph' | 'branches';
+export type ActiveTab = 'tree' | 'graph' | 'branches' | 'architecture';

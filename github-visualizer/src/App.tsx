@@ -20,6 +20,12 @@ const BranchTree = lazy(() =>
   }))
 );
 
+const Architecture = lazy(() =>
+  import('@/components/Architecture/Architecture.tsx').then((m) => ({
+    default: m.Architecture,
+  }))
+);
+
 export default function App() {
   const status = useRepoStore((s) => s.status);
   const error = useRepoStore((s) => s.error);
@@ -51,9 +57,13 @@ export default function App() {
               <Suspense fallback={<LoadingSpinner message="Loading graph..." />}>
                 <DependencyGraph />
               </Suspense>
-            ) : (
+            ) : activeTab === 'branches' ? (
               <Suspense fallback={<LoadingSpinner message="Loading branches..." />}>
                 <BranchTree />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<LoadingSpinner message="Analyzing architecture..." />}>
+                <Architecture />
               </Suspense>
             )}
           </div>
