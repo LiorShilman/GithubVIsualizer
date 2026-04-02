@@ -1,7 +1,6 @@
 import { useMemo, useCallback, useState, useRef } from 'react';
 import {
   ReactFlow,
-  Background,
   Controls,
   MiniMap,
   type Node,
@@ -9,7 +8,6 @@ import {
   useNodesState,
   useEdgesState,
   MarkerType,
-  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import Dagre from '@dagrejs/dagre';
@@ -372,12 +370,17 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} />
         <Controls />
         <MiniMap
           nodeStrokeWidth={3}
+          pannable
+          zoomable
           style={{ background: 'var(--bg-secondary)', borderRadius: 8 }}
-          maskColor="rgba(0,0,0,0.15)"
+          maskColor="rgba(0,0,0,0.25)"
+          nodeColor={(node) => {
+            if (node.type === 'categoryGroup') return 'transparent';
+            return (node.data as { color?: string })?.color || 'var(--text-muted)';
+          }}
         />
       </ReactFlow>
 
