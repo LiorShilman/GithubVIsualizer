@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -6,6 +6,8 @@ import {
   MiniMap,
   type Node,
   type Edge,
+  useNodesState,
+  useEdgesState,
   MarkerType,
   BackgroundVariant,
 } from '@xyflow/react';
@@ -51,7 +53,6 @@ function layoutNodes(graphNodes: GraphNode[], allEdges: GraphEdge[]): Node[] {
     marginy: 40,
   });
 
-  // Build export counts
   const exportCounts = new Map<string, number>();
   for (const edge of allEdges) {
     exportCounts.set(edge.source, (exportCounts.get(edge.source) || 0) + 1);
@@ -62,7 +63,6 @@ function layoutNodes(graphNodes: GraphNode[], allEdges: GraphEdge[]): Node[] {
   }
 
   for (const edge of allEdges) {
-    // Only add edges between nodes that exist in our set
     if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
       g.setEdge(edge.source, edge.target);
     }
@@ -93,6 +93,28 @@ function layoutNodes(graphNodes: GraphNode[], allEdges: GraphEdge[]): Node[] {
   });
 }
 
+function buildEdges(graphEdges: GraphEdge[]): Edge[] {
+  return graphEdges.map((e, i) => ({
+    id: `e-${i}`,
+    source: e.source,
+    target: e.target,
+    type: 'smoothstep',
+    animated: false,
+    style: {
+      stroke: 'var(--text-muted)',
+      strokeWidth: 1.2,
+      opacity: 0.4,
+      transition: 'all 0.3s ease',
+    },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 12,
+      height: 12,
+      color: 'var(--text-muted)',
+    },
+  }));
+}
+
 export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery, onOpenCodeMap }: GraphCanvasProps) {
   const [contextMenu, setContextMenu] = useState<{
     nodeId: string;
@@ -100,78 +122,115 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
     position: { x: number; y: number };
   } | null>(null);
 
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const hoveredRef = useRef<string | null>(null);
 
-  const laidOutNodes = useMemo(() => layoutNodes(graphNodes, graphEdges), [graphNodes, graphEdges]);
+  const initialNodes = useMemo(() => layoutNodes(graphNodes, graphEdges), [graphNodes, graphEdges]);
+  const initialEdges = useMemo(() => buildEdges(graphEdges), [graphEdges]);
 
-  const styledNodes = useMemo(() => {
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(initialNodes);
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Apply search highlighting (only when search changes, not on hover)
+  useMemo(() => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return laidOutNodes.map((n) => ({
+      setFlowNodes(initialNodes.map((n) => ({
         ...n,
         data: {
           ...n.data,
           isDimmed: !n.id.toLowerCase().includes(q),
           isHighlighted: n.id.toLowerCase().includes(q),
         },
-      }));
+      })));
+    } else if (!hoveredRef.current) {
+      setFlowNodes(initialNodes);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, initialNodes]);
+
+  const applyHover = useCallback((nodeId: string | null) => {
+    hoveredRef.current = nodeId;
+
+    if (searchQuery) return; // Don't override search highlighting
+
+    if (!nodeId) {
+      // Reset all nodes and edges to default
+      setFlowNodes((nds) =>
+        nds.map((n) => ({
+          ...n,
+          data: { ...n.data, isHighlighted: false, isDimmed: false },
+        }))
+      );
+      setFlowEdges((eds) =>
+        eds.map((e) => ({
+          ...e,
+          animated: false,
+          style: {
+            ...e.style,
+            stroke: 'var(--text-muted)',
+            strokeWidth: 1.2,
+            opacity: 0.4,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 12,
+            height: 12,
+            color: 'var(--text-muted)',
+          },
+        }))
+      );
+      return;
     }
 
-    if (hoveredNodeId) {
-      const connectedIds = new Set<string>();
-      connectedIds.add(hoveredNodeId);
-      for (const e of graphEdges) {
-        if (e.source === hoveredNodeId) connectedIds.add(e.target);
-        if (e.target === hoveredNodeId) connectedIds.add(e.source);
+    // Find connected nodes
+    const connectedIds = new Set<string>();
+    connectedIds.add(nodeId);
+    const connectedEdges = new Set<string>();
+    for (const e of graphEdges) {
+      if (e.source === nodeId) {
+        connectedIds.add(e.target);
+        connectedEdges.add(`${e.source}->${e.target}`);
       }
-      return laidOutNodes.map((n) => ({
+      if (e.target === nodeId) {
+        connectedIds.add(e.source);
+        connectedEdges.add(`${e.source}->${e.target}`);
+      }
+    }
+
+    setFlowNodes((nds) =>
+      nds.map((n) => ({
         ...n,
         data: {
           ...n.data,
           isDimmed: !connectedIds.has(n.id),
-          isHighlighted: n.id === hoveredNodeId,
+          isHighlighted: n.id === nodeId,
         },
-      }));
-    }
+      }))
+    );
 
-    return laidOutNodes;
-  }, [laidOutNodes, graphEdges, searchQuery, hoveredNodeId]);
-
-  const styledEdges = useMemo((): Edge[] => {
-    const connectedToHover = new Set<string>();
-    if (hoveredNodeId) {
-      for (const e of graphEdges) {
-        if (e.source === hoveredNodeId || e.target === hoveredNodeId) {
-          connectedToHover.add(`${e.source}->${e.target}`);
-        }
-      }
-    }
-
-    return graphEdges.map((e, i) => {
-      const edgeKey = `${e.source}->${e.target}`;
-      const isActive = hoveredNodeId ? connectedToHover.has(edgeKey) : false;
-
-      return {
-        id: `e-${i}`,
-        source: e.source,
-        target: e.target,
-        type: 'smoothstep',
-        animated: isActive,
-        style: {
-          stroke: isActive ? 'var(--accent)' : 'var(--text-muted)',
-          strokeWidth: isActive ? 2.5 : 1.2,
-          opacity: hoveredNodeId ? (isActive ? 0.9 : 0.08) : 0.4,
-          transition: 'all 0.3s ease',
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          width: 12,
-          height: 12,
-          color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-        },
-      };
-    });
-  }, [graphEdges, hoveredNodeId]);
+    setFlowEdges((eds) =>
+      eds.map((e) => {
+        const edgeKey = `${e.source}->${e.target}`;
+        const isActive = connectedEdges.has(edgeKey);
+        return {
+          ...e,
+          animated: isActive,
+          style: {
+            ...e.style,
+            stroke: isActive ? 'var(--accent)' : 'var(--text-muted)',
+            strokeWidth: isActive ? 2.5 : 1.2,
+            opacity: isActive ? 0.9 : 0.08,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 12,
+            height: 12,
+            color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+          },
+        };
+      })
+    );
+  }, [graphEdges, searchQuery, setFlowNodes, setFlowEdges]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     const rect = (_.target as HTMLElement).closest('.react-flow__node')?.getBoundingClientRect();
@@ -186,12 +245,12 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
   }, []);
 
   const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
-    setHoveredNodeId(node.id);
-  }, []);
+    applyHover(node.id);
+  }, [applyHover]);
 
   const onNodeMouseLeave = useCallback(() => {
-    setHoveredNodeId(null);
-  }, []);
+    applyHover(null);
+  }, [applyHover]);
 
   const onPaneClick = useCallback(() => {
     setContextMenu(null);
@@ -200,9 +259,11 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
   return (
     <div className={styles.canvas}>
       <ReactFlow
-        nodes={styledNodes}
-        edges={styledEdges}
+        nodes={flowNodes}
+        edges={flowEdges}
         nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}

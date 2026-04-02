@@ -13,7 +13,6 @@
 }
 
 .node:hover {
-  transform: scale(1.05);
   border-color: var(--node-color);
   box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.15),
@@ -26,13 +25,11 @@
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.2),
     0 0 35px color-mix(in srgb, var(--node-color) 50%, transparent) !important;
-  transform: scale(1.08);
 }
 
 .dimmed {
-  opacity: 0.2;
+  opacity: 0.15;
   filter: grayscale(0.6);
-  pointer-events: none;
 }
 
 .colorStripe {

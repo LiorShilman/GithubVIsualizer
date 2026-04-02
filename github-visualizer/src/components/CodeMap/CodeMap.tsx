@@ -53,6 +53,116 @@ function findIndentEnd(lines: string[], startIdx: number): number {
   return lines.length - 1;
 }
 
+// Threshold: if a function/component is larger than this, parse its inner members
+const DEEP_PARSE_THRESHOLD = 15;
+
+function parseInnerSections(_parentName: string, code: string, startLineOffset: number): CodeSection[] {
+  const lines = code.split('\n');
+  const inner: CodeSection[] = [];
+
+  // Skip the first line (function signature) and last line (closing brace)
+  for (let i = 1; i < lines.length - 1; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) continue;
+
+    // Inner function declaration: function name() or async function name()
+    const funcMatch = trimmed.match(/^(?:async\s+)?function\s+(\w+)/);
+    if (funcMatch) {
+      const end = findMatchingBrace(lines, i);
+      const codeLines = lines.slice(i, end + 1);
+      inner.push({
+        type: 'function',
+        name: funcMatch[1],
+        signature: trimmed,
+        startLine: startLineOffset + i + 1,
+        endLine: startLineOffset + end + 1,
+        code: codeLines.join('\n'),
+        lineCount: codeLines.length,
+      });
+      i = end;
+      continue;
+    }
+
+    // Inner const/let arrow functions or callbacks: const name = (...) => { or const name = useCallback(
+    const constMatch = trimmed.match(/^const\s+(\w+)\s*=\s*/);
+    if (constMatch) {
+      const afterEquals = trimmed.slice(trimmed.indexOf('=') + 1).trim();
+      const isFunc = /^\(|^async\s*\(|^useCallback|^useMemo|^memo/.test(afterEquals) ||
+                     /=>\s*\{?/.test(trimmed) ||
+                     /^function/.test(afterEquals);
+
+      if (isFunc || trimmed.includes('{')) {
+        let end = i;
+        if (trimmed.includes('{')) {
+          end = findMatchingBrace(lines, i);
+        } else if (trimmed.endsWith(';') || trimmed.endsWith(',')) {
+          end = i;
+        } else {
+          let parenDepth = 0;
+          let braceDepth = 0;
+          for (let j = i; j < lines.length - 1; j++) {
+            for (const ch of lines[j]) {
+              if (ch === '(') parenDepth++;
+              if (ch === ')') parenDepth--;
+              if (ch === '{') braceDepth++;
+              if (ch === '}') braceDepth--;
+            }
+            if (j > i && parenDepth <= 0 && braceDepth <= 0) {
+              end = j;
+              break;
+            }
+          }
+        }
+
+        const codeLines = lines.slice(i, end + 1);
+        inner.push({
+          type: isFunc ? 'function' : 'variable',
+          name: constMatch[1],
+          signature: trimmed,
+          startLine: startLineOffset + i + 1,
+          endLine: startLineOffset + end + 1,
+          code: codeLines.join('\n'),
+          lineCount: codeLines.length,
+        });
+        i = end;
+        continue;
+      }
+    }
+
+    // Hook calls: useEffect(() => { ... }), useMemo(() => { ... })
+    const hookMatch = trimmed.match(/^(useEffect|useLayoutEffect|useMemo|useCallback)\s*\(/);
+    if (hookMatch) {
+      let end = i;
+      let parenDepth = 0;
+      for (let j = i; j < lines.length - 1; j++) {
+        for (const ch of lines[j]) {
+          if (ch === '(') parenDepth++;
+          if (ch === ')') parenDepth--;
+        }
+        if (j > i && parenDepth <= 0) {
+          end = j;
+          break;
+        }
+      }
+
+      const codeLines = lines.slice(i, end + 1);
+      inner.push({
+        type: 'function',
+        name: hookMatch[1],
+        signature: trimmed,
+        startLine: startLineOffset + i + 1,
+        endLine: startLineOffset + end + 1,
+        code: codeLines.join('\n'),
+        lineCount: codeLines.length,
+      });
+      i = end;
+      continue;
+    }
+  }
+
+  return inner;
+}
+
 function parseCodeSections(content: string, ext: string): CodeSection[] {
   const lines = content.split('\n');
   const sections: CodeSection[] = [];
@@ -64,6 +174,27 @@ function parseCodeSections(content: string, ext: string): CodeSection[] {
   function addSection(type: CodeSection['type'], name: string, start: number, end: number) {
     const codeLines = lines.slice(start, end + 1);
     const code = codeLines.join('\n');
+
+    // For large functions/components, also parse inner members
+    if (type === 'function' && codeLines.length > DEEP_PARSE_THRESHOLD && isJS) {
+      const innerSections = parseInnerSections(name, code, start);
+      if (innerSections.length > 0) {
+        // Add the parent as a "component" header, then add inner sections
+        sections.push({
+          type,
+          name: `${name} (component)`,
+          signature: lines[start]?.trim() || '',
+          startLine: start + 1,
+          endLine: end + 1,
+          code,
+          lineCount: codeLines.length,
+        });
+        sections.push(...innerSections);
+        for (let i = start; i <= end; i++) used.add(i);
+        return;
+      }
+    }
+
     sections.push({
       type,
       name,
@@ -340,9 +471,18 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [highlightedHtml, setHighlightedHtml] = useState<Map<number, string>>(new Map());
 
-  // AI state
+  // AI state - load cached results from localStorage
   const [aiSectionIdx, setAiSectionIdx] = useState<number | null>(null);
-  const [aiResult, setAiResult] = useState<Map<number, string>>(new Map());
+  const [aiResult, setAiResult] = useState<Map<number, string>>(() => {
+    try {
+      const cached = localStorage.getItem(`ai_cache_${filePath}`);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Record<string, string>;
+        return new Map(Object.entries(parsed).map(([k, v]) => [Number(k), v]));
+      }
+    } catch { /* ignore */ }
+    return new Map();
+  });
   const [aiLoading, setAiLoading] = useState<number | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -406,6 +546,15 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
     return () => { cancelled = true; };
   }, [expandedSection, sections, ext, highlightedHtml]);
 
+  // Save AI results to localStorage whenever they change
+  const saveAiCache = useCallback((results: Map<number, string>) => {
+    try {
+      const obj: Record<string, string> = {};
+      results.forEach((v, k) => { obj[String(k)] = v; });
+      localStorage.setItem(`ai_cache_${filePath}`, JSON.stringify(obj));
+    } catch { /* ignore quota errors */ }
+  }, [filePath]);
+
   const handleAiExplain = useCallback(async (sectionIdx: number) => {
     const section = sections[sectionIdx];
     if (!section || !aiApiKey) return;
@@ -438,12 +587,19 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
           });
         }
       );
+      // Save final result to localStorage
+      setAiResult((prev) => {
+        const next = new Map(prev);
+        next.set(sectionIdx, accumulated);
+        saveAiCache(next);
+        return next;
+      });
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'AI analysis failed');
     } finally {
       setAiLoading(null);
     }
-  }, [sections, aiApiKey, aiModel, filePath, aiResult]);
+  }, [sections, aiApiKey, aiModel, filePath, aiResult, saveAiCache]);
 
   if (isLoading) {
     return (
