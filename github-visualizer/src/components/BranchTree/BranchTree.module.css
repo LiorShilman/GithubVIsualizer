@@ -118,6 +118,12 @@
   flex-shrink: 0;
 }
 
+.commitCount {
+  font-size: 0.6rem;
+  opacity: 0.5;
+  font-weight: 400;
+}
+
 .defaultBadge {
   font-size: 0.6rem;
   background: var(--accent);

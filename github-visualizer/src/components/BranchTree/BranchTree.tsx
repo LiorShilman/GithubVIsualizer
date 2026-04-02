@@ -10,7 +10,6 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import Dagre from '@dagrejs/dagre';
 import { GitBranch, Loader2 } from 'lucide-react';
 import { useRepoStore } from '@/store/useRepoStore.ts';
 import { parseRepoUrl, fetchBranches, fetchBranchCommits } from '@/services/github.ts';
@@ -25,6 +24,9 @@ const BRANCH_COLORS = [
   '#06B6D4', '#84CC16', '#8B5CF6', '#F97316', '#A78BFA',
 ];
 
+const LANE_WIDTH = 340;
+const ROW_HEIGHT = 90;
+
 interface BranchData {
   branch: GitHubBranch;
   commits: GitHubCommit[];
@@ -35,12 +37,8 @@ function layoutBranchTree(
   defaultBranch: string,
   selectedBranches: Set<string>
 ): { nodes: Node[]; edges: Edge[] } {
-  const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 80, marginx: 40, marginy: 50 });
-
   const allNodes: Node[] = [];
   const allEdges: Edge[] = [];
-  const commitNodeMap = new Map<string, string>(); // sha → nodeId
 
   // Sort: default branch first, then by name
   const sorted = [...branchDataList]
@@ -51,40 +49,88 @@ function layoutBranchTree(
       return a.branch.name.localeCompare(b.branch.name);
     });
 
-  for (let bi = 0; bi < sorted.length; bi++) {
-    const { branch, commits } = sorted[bi];
-    const color = BRANCH_COLORS[bi % BRANCH_COLORS.length];
+  if (sorted.length === 0) return { nodes: [], edges: [] };
 
-    for (let ci = 0; ci < commits.length; ci++) {
-      const commit = commits[ci];
-      const nodeId = `${branch.name}::${commit.sha}`;
-      const isMerge = commit.parents.length > 1;
+  // Collect all commits from the default branch for fork-point detection
+  const defaultBranchData = sorted.find((s) => s.branch.name === defaultBranch) || sorted[0];
+  const defaultShas = new Set(defaultBranchData.commits.map((c) => c.sha));
 
-      // If this commit was already added by another branch, create a link instead
-      if (commitNodeMap.has(commit.sha)) {
-        // Link the previous commit in this branch to the existing node
+  // Assign lanes: default branch = lane 0, others = lane 1, 2, ...
+  const laneMap = new Map<string, number>();
+  laneMap.set(defaultBranchData.branch.name, 0);
+  let nextLane = 1;
+  for (const bd of sorted) {
+    if (!laneMap.has(bd.branch.name)) {
+      laneMap.set(bd.branch.name, nextLane++);
+    }
+  }
+
+  // Track which commits are placed (for dedup & fork detection)
+  const placedCommits = new Map<string, { nodeId: string; lane: number; row: number }>();
+
+  // Place default branch first
+  placebranchCommits(defaultBranchData, 0, BRANCH_COLORS[0]);
+
+  // Place other branches
+  for (const bd of sorted) {
+    if (bd.branch.name === defaultBranchData.branch.name) continue;
+    const lane = laneMap.get(bd.branch.name)!;
+    const color = BRANCH_COLORS[lane % BRANCH_COLORS.length];
+    placebranchCommits(bd, lane, color);
+  }
+
+  function placebranchCommits(bd: BranchData, lane: number, color: string) {
+    const { branch, commits } = bd;
+    let row = 0;
+    let forkRow = -1;
+
+    // For non-default branches, find where they fork from default
+    if (lane > 0) {
+      for (let i = 0; i < commits.length; i++) {
+        if (defaultShas.has(commits[i].sha)) {
+          // This commit is shared with default branch — fork point found
+          forkRow = i;
+          break;
+        }
+      }
+    }
+
+    // Only place commits unique to this branch (up to fork point)
+    const branchCommits = forkRow >= 0 ? commits.slice(0, forkRow) : commits;
+    const forkCommit = forkRow >= 0 ? commits[forkRow] : null;
+
+    for (let ci = 0; ci < branchCommits.length; ci++) {
+      const commit = branchCommits[ci];
+
+      // Skip if already placed by another branch
+      if (placedCommits.has(commit.sha)) {
+        // Connect previous commit to existing one
         if (ci > 0) {
-          const prevNodeId = `${branch.name}::${commits[ci - 1].sha}`;
+          const prevNodeId = `${branch.name}::${branchCommits[ci - 1].sha}`;
+          const existing = placedCommits.get(commit.sha)!;
           allEdges.push({
-            id: `e-${prevNodeId}-${commitNodeMap.get(commit.sha)}`,
+            id: `e-join-${prevNodeId}-${existing.nodeId}`,
             source: prevNodeId,
-            target: commitNodeMap.get(commit.sha)!,
+            target: existing.nodeId,
             type: 'smoothstep',
-            style: { stroke: color, strokeWidth: 1.5, strokeDasharray: '6 3', opacity: 0.5 },
+            style: { stroke: color, strokeWidth: 2, opacity: 0.5, strokeDasharray: '6 4' },
             markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color },
           });
         }
-        break; // Stop this branch here — it merges into existing commits
+        continue;
       }
 
-      commitNodeMap.set(commit.sha, nodeId);
+      const nodeId = `${branch.name}::${commit.sha}`;
+      const isMerge = commit.parents.length > 1;
+      const x = lane * LANE_WIDTH;
+      const y = row * ROW_HEIGHT + 40;
 
-      g.setNode(nodeId, { width: 260, height: 60 });
+      placedCommits.set(commit.sha, { nodeId, lane, row });
 
       allNodes.push({
         id: nodeId,
         type: 'commit',
-        position: { x: 0, y: 0 }, // Will be set by dagre
+        position: { x, y },
         data: {
           sha: commit.sha,
           message: commit.commit.message,
@@ -95,64 +141,102 @@ function layoutBranchTree(
           color,
           isMerge,
           isHead: ci === 0,
+          isFork: false,
+          parentCount: commit.parents.length,
         },
       });
 
       // Edge from previous commit in this branch
       if (ci > 0) {
-        const prevNodeId = `${branch.name}::${commits[ci - 1].sha}`;
-        const edgeId = `e-${prevNodeId}-${nodeId}`;
+        const prevNodeId = `${branch.name}::${branchCommits[ci - 1].sha}`;
         allEdges.push({
-          id: edgeId,
+          id: `e-${prevNodeId}-${nodeId}`,
           source: prevNodeId,
           target: nodeId,
           type: 'smoothstep',
           animated: false,
-          style: { stroke: color, strokeWidth: 2, opacity: 0.6 },
+          style: { stroke: color, strokeWidth: 2, opacity: 0.7 },
           markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color },
         });
       }
 
-      // Cross-branch links for merge commits
+      // Cross-branch merge links
       if (isMerge) {
         for (const parent of commit.parents) {
-          if (commitNodeMap.has(parent.sha) && commitNodeMap.get(parent.sha) !== `${branch.name}::${commits[ci + 1]?.sha}`) {
-            allEdges.push({
-              id: `e-merge-${nodeId}-${parent.sha}`,
-              source: nodeId,
-              target: commitNodeMap.get(parent.sha)!,
-              type: 'smoothstep',
-              style: { stroke: color, strokeWidth: 1.5, strokeDasharray: '4 3', opacity: 0.4 },
-              markerEnd: { type: MarkerType.ArrowClosed, width: 8, height: 8, color },
-            });
+          if (placedCommits.has(parent.sha)) {
+            const parentInfo = placedCommits.get(parent.sha)!;
+            if (parentInfo.lane !== lane) {
+              allEdges.push({
+                id: `e-merge-${nodeId}-${parent.sha}`,
+                source: nodeId,
+                target: parentInfo.nodeId,
+                type: 'smoothstep',
+                style: { stroke: color, strokeWidth: 1.5, strokeDasharray: '5 3', opacity: 0.4 },
+                markerEnd: { type: MarkerType.ArrowClosed, width: 8, height: 8, color },
+              });
+            }
           }
         }
       }
+
+      row++;
+    }
+
+    // Connect last branch commit to fork point on default branch
+    if (forkCommit && placedCommits.has(forkCommit.sha) && branchCommits.length > 0) {
+      const lastNodeId = `${branch.name}::${branchCommits[branchCommits.length - 1].sha}`;
+      const forkInfo = placedCommits.get(forkCommit.sha)!;
+
+      // Mark the fork point node
+      const forkNode = allNodes.find((n) => n.id === forkInfo.nodeId);
+      if (forkNode) {
+        forkNode.data = { ...forkNode.data, isFork: true };
+      }
+
+      allEdges.push({
+        id: `e-fork-${lastNodeId}-${forkInfo.nodeId}`,
+        source: lastNodeId,
+        target: forkInfo.nodeId,
+        type: 'smoothstep',
+        style: { stroke: color, strokeWidth: 2.5, opacity: 0.6, strokeDasharray: '8 4' },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color },
+      });
     }
   }
 
-  // Only layout nodes that are in the graph
-  for (const node of allNodes) {
-    if (!g.hasNode(node.id)) {
-      g.setNode(node.id, { width: 260, height: 60 });
-    }
-  }
+  // Add lane header nodes (branch labels at top)
+  for (const bd of sorted) {
+    const lane = laneMap.get(bd.branch.name)!;
+    const color = BRANCH_COLORS[lane % BRANCH_COLORS.length];
+    const isDefault = bd.branch.name === defaultBranch;
 
-  // Add edges to dagre
-  for (const edge of allEdges) {
-    if (g.hasNode(edge.source) && g.hasNode(edge.target)) {
-      g.setEdge(edge.source, edge.target);
-    }
-  }
-
-  Dagre.layout(g);
-
-  // Apply positions
-  for (const node of allNodes) {
-    const pos = g.node(node.id);
-    if (pos) {
-      node.position = { x: pos.x - 130, y: pos.y - 30 };
-    }
+    allNodes.push({
+      id: `lane-header-${bd.branch.name}`,
+      type: 'default',
+      position: { x: lane * LANE_WIDTH + 40, y: -40 },
+      selectable: false,
+      draggable: false,
+      data: { label: '' },
+      style: {
+        background: `${color}15`,
+        border: `1.5px solid ${color}50`,
+        borderRadius: 20,
+        padding: '4px 14px',
+        fontSize: '0.72rem',
+        fontWeight: 700,
+        color,
+        pointerEvents: 'none' as const,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        whiteSpace: 'nowrap' as const,
+      },
+    });
+    // Override the label with branch name + badge
+    const headerNode = allNodes[allNodes.length - 1];
+    headerNode.data = {
+      label: `${bd.branch.name}${isDefault ? ' ★' : ''} · ${bd.commits.length} commits`,
+    };
   }
 
   return { nodes: allNodes, edges: allEdges };
@@ -185,7 +269,7 @@ export function BranchTree() {
       for (const branch of branchesToFetch) {
         try {
           const commits = await fetchBranchCommits(
-            parsed.owner, parsed.repo, branch.name, token || undefined, 30
+            parsed.owner, parsed.repo, branch.name, token || undefined, 40
           );
           results.push({ branch, commits });
         } catch {
@@ -247,9 +331,11 @@ export function BranchTree() {
         <span className={styles.controlLabel}>Branches:</span>
         <div className={styles.legend}>
           {branchData.map((bd, i) => {
-            const color = BRANCH_COLORS[i % BRANCH_COLORS.length];
+            const lane = i; // sorted same way as layout
+            const color = BRANCH_COLORS[lane % BRANCH_COLORS.length];
             const isSelected = selectedBranches.has(bd.branch.name);
             const isDefault = bd.branch.name === repoInfo?.default_branch;
+            const commitCount = bd.commits.length;
             return (
               <button
                 key={bd.branch.name}
@@ -259,6 +345,7 @@ export function BranchTree() {
               >
                 <span className={styles.legendDot} style={{ background: color }} />
                 {bd.branch.name}
+                <span className={styles.commitCount}>{commitCount}</span>
                 {isDefault && <span className={styles.defaultBadge}>default</span>}
               </button>
             );
@@ -266,7 +353,7 @@ export function BranchTree() {
         </div>
 
         <span className={styles.branchCount}>
-          {branches.length} branches, {layoutNodes.length} commits
+          {branches.length} branches · {layoutNodes.filter(n => n.type === 'commit').length} commits
         </span>
 
         <button className={styles.loadBtn} onClick={handleLoad} disabled={isLoading}>
@@ -283,7 +370,7 @@ export function BranchTree() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           fitView
-          fitViewOptions={{ padding: 0.3 }}
+          fitViewOptions={{ padding: 0.2 }}
           minZoom={0.05}
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
@@ -296,6 +383,7 @@ export function BranchTree() {
             style={{ background: 'var(--bg-secondary)', borderRadius: 8 }}
             maskColor="rgba(0,0,0,0.25)"
             nodeColor={(node) => {
+              if (node.type !== 'commit') return 'transparent';
               return (node.data as { color?: string })?.color || 'var(--text-muted)';
             }}
           />
