@@ -11,7 +11,7 @@ import type {
   AppStatus,
   ActiveTab,
 } from '@/types/index.ts';
-import type { AIModel } from '@/services/aiAnalysis.ts';
+import type { AIModel, AILanguage } from '@/services/aiAnalysis.ts';
 import { getProviderForModel } from '@/services/aiAnalysis.ts';
 import {
   parseRepoUrl,
@@ -108,6 +108,7 @@ interface RepoStore {
 
   aiApiKey: string;
   aiModel: AIModel;
+  aiLanguage: AILanguage;
   anthropicKey: string;
   openaiKey: string;
 
@@ -122,6 +123,7 @@ interface RepoStore {
   setBranch: (branch: string) => void;
   setAiApiKey: (key: string) => void;
   setAiModel: (model: AIModel) => void;
+  setAiLanguage: (lang: AILanguage) => void;
   setAnthropicKey: (key: string) => void;
   setOpenaiKey: (key: string) => void;
   getActiveAiKey: () => string;
@@ -166,6 +168,7 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
   openaiKey: localStorage.getItem('openai_api_key') || import.meta.env.VITE_OPENAI_API_KEY || '',
   aiApiKey: localStorage.getItem('ai_api_key') || '',
   aiModel: (localStorage.getItem('ai_model') as AIModel) || 'claude-sonnet-4-6',
+  aiLanguage: (localStorage.getItem('ai_language') as AILanguage) || 'en',
 
   setRepoUrl: (url) => set({ repoUrl: url }),
   setToken: (token) => {
@@ -203,6 +206,10 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
   setAiModel: (model) => {
     localStorage.setItem('ai_model', model);
     set({ aiModel: model });
+  },
+  setAiLanguage: (lang) => {
+    localStorage.setItem('ai_language', lang);
+    set({ aiLanguage: lang });
   },
   setAnthropicKey: (key) => {
     localStorage.setItem('anthropic_api_key', key);

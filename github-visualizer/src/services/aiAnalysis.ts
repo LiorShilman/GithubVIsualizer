@@ -31,8 +31,16 @@ export function getProviderForModel(model: AIModel): AIProvider {
   return AI_MODELS.find((m) => m.id === model)?.provider || 'claude';
 }
 
-function buildPrompt(code: string, sectionName: string, sectionType: string, filePath: string): string {
+export type AILanguage = 'en' | 'he';
+
+function buildPrompt(code: string, sectionName: string, sectionType: string, filePath: string, language: AILanguage): string {
+  const langInstruction = language === 'he'
+    ? 'Respond entirely in Hebrew (עברית). Use right-to-left text. Keep code terms and variable names in English but explain everything else in Hebrew.'
+    : 'Respond in English.';
+
   return `You are a code analysis expert. Analyze the following code section and explain it in a clear, educational way that helps a developer understand it quickly.
+
+${langInstruction}
 
 **File:** \`${filePath}\`
 **Section:** ${sectionName} (${sectionType})
@@ -171,9 +179,10 @@ export async function analyzeCode(
   filePath: string,
   apiKey: string,
   model: AIModel,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  language: AILanguage = 'en'
 ): Promise<void> {
-  const prompt = buildPrompt(code, sectionName, sectionType, filePath);
+  const prompt = buildPrompt(code, sectionName, sectionType, filePath, language);
   const provider = getProviderForModel(model);
 
   if (provider === 'claude') {

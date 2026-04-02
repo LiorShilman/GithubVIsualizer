@@ -2,7 +2,7 @@ import { Settings, Moon, Sun, Brain } from 'lucide-react';
 import { useState } from 'react';
 import { useRepoStore } from '@/store/useRepoStore.ts';
 import { AI_MODELS } from '@/services/aiAnalysis.ts';
-import type { AIModel } from '@/services/aiAnalysis.ts';
+import type { AIModel, AILanguage } from '@/services/aiAnalysis.ts';
 import styles from './SettingsPanel.module.css';
 
 export function SettingsPanel() {
@@ -16,7 +16,9 @@ export function SettingsPanel() {
   const toggleDarkMode = useRepoStore((s) => s.toggleDarkMode);
   const toggleShowConfig = useRepoStore((s) => s.toggleShowConfig);
   const setGraphFilter = useRepoStore((s) => s.setGraphFilter);
+  const aiLanguage = useRepoStore((s) => s.aiLanguage);
   const setAiModel = useRepoStore((s) => s.setAiModel);
+  const setAiLanguage = useRepoStore((s) => s.setAiLanguage);
   const setAnthropicKey = useRepoStore((s) => s.setAnthropicKey);
   const setOpenaiKey = useRepoStore((s) => s.setOpenaiKey);
 
@@ -93,6 +95,19 @@ export function SettingsPanel() {
                     <option key={m.id} value={m.id}>{m.label}</option>
                   ))}
                 </optgroup>
+              </select>
+            </div>
+
+            <div className={styles.optionCol}>
+              <label className={styles.label}>Response Language</label>
+              <select
+                className={styles.modelSelect}
+                title="AI Response Language"
+                value={aiLanguage}
+                onChange={(e) => setAiLanguage(e.target.value as AILanguage)}
+              >
+                <option value="en">English</option>
+                <option value="he">עברית (Hebrew)</option>
               </select>
             </div>
 

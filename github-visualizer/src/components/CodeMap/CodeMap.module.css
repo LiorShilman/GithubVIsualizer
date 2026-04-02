@@ -389,6 +389,12 @@
   font-size: 0.78rem;
   font-family: 'Fira Code', monospace;
   color: #8B5CF6;
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+.aiContent[dir="rtl"] {
+  text-align: right;
 }
 
 .aiError {

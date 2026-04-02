@@ -489,6 +489,7 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
   const graphEdges = useRepoStore((s) => s.graphEdges);
   const getActiveAiKey = useRepoStore((s) => s.getActiveAiKey);
   const aiModel = useRepoStore((s) => s.aiModel);
+  const aiLanguage = useRepoStore((s) => s.aiLanguage);
   const aiApiKey = getActiveAiKey();
 
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
@@ -608,7 +609,8 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
             next.set(sectionIdx, accumulated);
             return next;
           });
-        }
+        },
+        aiLanguage
       );
       // Save final result to localStorage
       setAiResult((prev) => {
@@ -622,7 +624,7 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
     } finally {
       setAiLoading(null);
     }
-  }, [sections, aiApiKey, aiModel, filePath, aiResult, saveAiCache]);
+  }, [sections, aiApiKey, aiModel, aiLanguage, filePath, aiResult, saveAiCache]);
 
   if (isLoading) {
     return (
@@ -769,6 +771,7 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
                     </div>
                     <div
                       className={styles.aiContent}
+                      dir={aiLanguage === 'he' ? 'rtl' : 'ltr'}
                       dangerouslySetInnerHTML={{
                         __html: renderMarkdown(aiResult.get(i) || ''),
                       }}
