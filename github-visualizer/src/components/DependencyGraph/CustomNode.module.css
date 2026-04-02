@@ -1,0 +1,130 @@
+.node {
+  position: relative;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 160px;
+  overflow: visible;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 0 calc(var(--glow-intensity) * 30px) var(--node-color);
+  cursor: pointer;
+}
+
+.node:hover {
+  transform: scale(1.05);
+  border-color: var(--node-color);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    0 0 25px color-mix(in srgb, var(--node-color) 40%, transparent);
+  z-index: 10;
+}
+
+.highlighted {
+  border-color: var(--node-color) !important;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.2),
+    0 0 35px color-mix(in srgb, var(--node-color) 50%, transparent) !important;
+  transform: scale(1.08);
+}
+
+.dimmed {
+  opacity: 0.2;
+  filter: grayscale(0.6);
+  pointer-events: none;
+}
+
+.colorStripe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--node-color);
+  border-radius: 10px 0 0 10px;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 10px 16px;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--node-color);
+  display: flex;
+  align-items: center;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dir {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--node-color);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--node-color) !important;
+  border: 2px solid var(--bg-primary) !important;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.node:hover .handle {
+  opacity: 1;
+}
+
+.pulseRing {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 14px;
+  border: 2px solid var(--node-color);
+  opacity: 0;
+  animation: pulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.02); }
+}

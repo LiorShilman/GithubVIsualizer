@@ -1,0 +1,51 @@
+.container {
+  padding: 0.6rem 1.5rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.stats {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.langBar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.langSegment {
+  min-width: 3px;
+  transition: width 0.3s;
+}
+
+.langSegment:nth-child(1) { background: #3178C6; }
+.langSegment:nth-child(2) { background: #F0DB4F; }
+.langSegment:nth-child(3) { background: #E34C26; }
+.langSegment:nth-child(4) { background: #563D7C; }
+.langSegment:nth-child(5) { background: #3572A5; }
+.langSegment:nth-child(6) { background: #89D185; }
+
+.langLabels {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.langLabel {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

@@ -1,0 +1,162 @@
+.container {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.treePanel {
+  width: 280px;
+  min-width: 200px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 0.5rem 0;
+  background: var(--bg-primary);
+}
+
+.viewerPanel {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.emptyViewer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Tree Node */
+.node {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  padding-left: var(--depth);
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: background-color 0.1s;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.node:hover {
+  background: var(--bg-hover);
+}
+
+.nodeSelected {
+  background: var(--bg-selected) !important;
+  color: var(--accent);
+}
+
+.nodeIcon {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.nodeName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+/* Code Viewer */
+.codeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.codeHeaderPath {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+}
+
+.githubLink {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.githubLink:hover {
+  color: var(--accent);
+}
+
+.codeContent {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.codeContent pre {
+  margin: 0;
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+.codeContent code {
+  font-family: inherit;
+}
+
+.lineNumbers {
+  display: flex;
+}
+
+.lineNumberCol {
+  text-align: right;
+  padding-right: 1rem;
+  color: var(--text-muted);
+  user-select: none;
+  min-width: 3ch;
+}
+
+.loadMore {
+  display: block;
+  margin: 1rem auto;
+  padding: 0.4rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.loadMore:hover {
+  background: var(--bg-hover);
+}
+
+.codeLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-muted);
+}
