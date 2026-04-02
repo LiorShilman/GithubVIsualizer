@@ -276,7 +276,8 @@
 .sectionCode {
   border-top: 1px solid var(--border);
   padding: 12px 16px;
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 400px;
   background: var(--bg-secondary);
   animation: expandIn 0.15s ease-out;
 }

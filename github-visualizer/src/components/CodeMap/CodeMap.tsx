@@ -56,107 +56,119 @@ function findIndentEnd(lines: string[], startIdx: number): number {
 // Threshold: if a function/component is larger than this, parse its inner members
 const DEEP_PARSE_THRESHOLD = 15;
 
-function parseInnerSections(_parentName: string, code: string, startLineOffset: number): CodeSection[] {
+function parseInnerSections(code: string, startLineOffset: number, isClass: boolean): CodeSection[] {
   const lines = code.split('\n');
   const inner: CodeSection[] = [];
 
-  // Skip the first line (function signature) and last line (closing brace)
+  function addInner(type: CodeSection['type'], name: string, sig: string, start: number, end: number) {
+    const codeLines = lines.slice(start, end + 1);
+    inner.push({
+      type,
+      name,
+      signature: sig,
+      startLine: startLineOffset + start + 1,
+      endLine: startLineOffset + end + 1,
+      code: codeLines.join('\n'),
+      lineCount: codeLines.length,
+    });
+  }
+
+  // Skip the first line (signature) and last line (closing brace)
   for (let i = 1; i < lines.length - 1; i++) {
     const trimmed = lines[i].trim();
     if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) continue;
 
-    // Inner function declaration: function name() or async function name()
-    const funcMatch = trimmed.match(/^(?:async\s+)?function\s+(\w+)/);
-    if (funcMatch) {
-      const end = findMatchingBrace(lines, i);
-      const codeLines = lines.slice(i, end + 1);
-      inner.push({
-        type: 'function',
-        name: funcMatch[1],
-        signature: trimmed,
-        startLine: startLineOffset + i + 1,
-        endLine: startLineOffset + end + 1,
-        code: codeLines.join('\n'),
-        lineCount: codeLines.length,
-      });
-      i = end;
-      continue;
-    }
-
-    // Inner const/let arrow functions or callbacks: const name = (...) => { or const name = useCallback(
-    const constMatch = trimmed.match(/^const\s+(\w+)\s*=\s*/);
-    if (constMatch) {
-      const afterEquals = trimmed.slice(trimmed.indexOf('=') + 1).trim();
-      const isFunc = /^\(|^async\s*\(|^useCallback|^useMemo|^memo/.test(afterEquals) ||
-                     /=>\s*\{?/.test(trimmed) ||
-                     /^function/.test(afterEquals);
-
-      if (isFunc || trimmed.includes('{')) {
-        let end = i;
-        if (trimmed.includes('{')) {
-          end = findMatchingBrace(lines, i);
-        } else if (trimmed.endsWith(';') || trimmed.endsWith(',')) {
-          end = i;
-        } else {
-          let parenDepth = 0;
-          let braceDepth = 0;
-          for (let j = i; j < lines.length - 1; j++) {
-            for (const ch of lines[j]) {
-              if (ch === '(') parenDepth++;
-              if (ch === ')') parenDepth--;
-              if (ch === '{') braceDepth++;
-              if (ch === '}') braceDepth--;
-            }
-            if (j > i && parenDepth <= 0 && braceDepth <= 0) {
-              end = j;
-              break;
-            }
-          }
-        }
-
-        const codeLines = lines.slice(i, end + 1);
-        inner.push({
-          type: isFunc ? 'function' : 'variable',
-          name: constMatch[1],
-          signature: trimmed,
-          startLine: startLineOffset + i + 1,
-          endLine: startLineOffset + end + 1,
-          code: codeLines.join('\n'),
-          lineCount: codeLines.length,
-        });
+    if (isClass) {
+      // Class method: [private/public/protected] [async] [get/set] name(...) {
+      const methodMatch = trimmed.match(
+        /^(?:(?:private|public|protected|static|abstract|readonly)\s+)*(?:async\s+)?(?:get\s+|set\s+)?(\w+)\s*(?:<[^>]*>)?\s*\(/
+      );
+      if (methodMatch && trimmed.includes('{')) {
+        const end = findMatchingBrace(lines, i);
+        addInner('function', methodMatch[1], trimmed, i, end);
         i = end;
         continue;
       }
-    }
 
-    // Hook calls: useEffect(() => { ... }), useMemo(() => { ... })
-    const hookMatch = trimmed.match(/^(useEffect|useLayoutEffect|useMemo|useCallback)\s*\(/);
-    if (hookMatch) {
-      let end = i;
-      let parenDepth = 0;
-      for (let j = i; j < lines.length - 1; j++) {
-        for (const ch of lines[j]) {
-          if (ch === '(') parenDepth++;
-          if (ch === ')') parenDepth--;
-        }
-        if (j > i && parenDepth <= 0) {
-          end = j;
-          break;
+      // Class method without { on same line (multi-line signature)
+      if (methodMatch && !trimmed.includes('{')) {
+        let j = i + 1;
+        while (j < lines.length - 1 && !lines[j].includes('{')) j++;
+        if (j < lines.length - 1) {
+          const end = findMatchingBrace(lines, j);
+          addInner('function', methodMatch[1], trimmed, i, end);
+          i = end;
+          continue;
         }
       }
 
-      const codeLines = lines.slice(i, end + 1);
-      inner.push({
-        type: 'function',
-        name: hookMatch[1],
-        signature: trimmed,
-        startLine: startLineOffset + i + 1,
-        endLine: startLineOffset + end + 1,
-        code: codeLines.join('\n'),
-        lineCount: codeLines.length,
-      });
-      i = end;
-      continue;
+      // Class property: name: Type = value; or name = value;
+      const propMatch = trimmed.match(
+        /^(?:(?:private|public|protected|static|readonly|abstract)\s+)*(\w+)(?:\s*[!?]?\s*:\s*[^=]+)?\s*=/
+      );
+      if (propMatch && !trimmed.includes('{')) {
+        addInner('variable', propMatch[1], trimmed, i, i);
+        continue;
+      }
+    } else {
+      // Inner function declaration
+      const funcMatch = trimmed.match(/^(?:async\s+)?function\s+(\w+)/);
+      if (funcMatch) {
+        const end = findMatchingBrace(lines, i);
+        addInner('function', funcMatch[1], trimmed, i, end);
+        i = end;
+        continue;
+      }
+
+      // Inner const arrow functions
+      const constMatch = trimmed.match(/^const\s+(\w+)\s*=\s*/);
+      if (constMatch) {
+        const afterEquals = trimmed.slice(trimmed.indexOf('=') + 1).trim();
+        const isFunc = /^\(|^async\s*\(|^useCallback|^useMemo|^memo/.test(afterEquals) ||
+                       /=>\s*\{?/.test(trimmed) ||
+                       /^function/.test(afterEquals);
+
+        if (isFunc || trimmed.includes('{')) {
+          let end = i;
+          if (trimmed.includes('{')) {
+            end = findMatchingBrace(lines, i);
+          } else if (trimmed.endsWith(';') || trimmed.endsWith(',')) {
+            end = i;
+          } else {
+            let parenDepth = 0;
+            let braceDepth = 0;
+            for (let j = i; j < lines.length - 1; j++) {
+              for (const ch of lines[j]) {
+                if (ch === '(') parenDepth++;
+                if (ch === ')') parenDepth--;
+                if (ch === '{') braceDepth++;
+                if (ch === '}') braceDepth--;
+              }
+              if (j > i && parenDepth <= 0 && braceDepth <= 0) { end = j; break; }
+            }
+          }
+          addInner(isFunc ? 'function' : 'variable', constMatch[1], trimmed, i, end);
+          i = end;
+          continue;
+        }
+      }
+
+      // Hook calls: useEffect, useMemo, etc.
+      const hookMatch = trimmed.match(/^(useEffect|useLayoutEffect|useMemo|useCallback)\s*\(/);
+      if (hookMatch) {
+        let end = i;
+        let parenDepth = 0;
+        for (let j = i; j < lines.length - 1; j++) {
+          for (const ch of lines[j]) {
+            if (ch === '(') parenDepth++;
+            if (ch === ')') parenDepth--;
+          }
+          if (j > i && parenDepth <= 0) { end = j; break; }
+        }
+        addInner('function', hookMatch[1], trimmed, i, end);
+        i = end;
+        continue;
+      }
     }
   }
 
@@ -175,14 +187,14 @@ function parseCodeSections(content: string, ext: string): CodeSection[] {
     const codeLines = lines.slice(start, end + 1);
     const code = codeLines.join('\n');
 
-    // For large functions/components, also parse inner members
-    if (type === 'function' && codeLines.length > DEEP_PARSE_THRESHOLD && isJS) {
-      const innerSections = parseInnerSections(name, code, start);
+    // For large functions/components/classes, also parse inner members
+    if ((type === 'function' || type === 'class') && codeLines.length > DEEP_PARSE_THRESHOLD && isJS) {
+      const innerSections = parseInnerSections(code, start, type === 'class');
       if (innerSections.length > 0) {
-        // Add the parent as a "component" header, then add inner sections
+        const parentLabel = type === 'class' ? 'class' : 'component';
         sections.push({
           type,
-          name: `${name} (component)`,
+          name: `${name} (${parentLabel})`,
           signature: lines[start]?.trim() || '',
           startLine: start + 1,
           endLine: end + 1,
