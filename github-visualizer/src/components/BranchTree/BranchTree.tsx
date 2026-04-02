@@ -104,14 +104,14 @@ function layoutBranchTree(
 
       // Skip if already placed by another branch
       if (placedCommits.has(commit.sha)) {
-        // Connect previous commit to existing one
+        // Connect existing commit → previous (newer) commit in this branch
         if (ci > 0) {
           const prevNodeId = `${branch.name}::${branchCommits[ci - 1].sha}`;
           const existing = placedCommits.get(commit.sha)!;
           allEdges.push({
-            id: `e-join-${prevNodeId}-${existing.nodeId}`,
-            source: prevNodeId,
-            target: existing.nodeId,
+            id: `e-join-${existing.nodeId}-${prevNodeId}`,
+            source: existing.nodeId,
+            target: prevNodeId,
             type: 'smoothstep',
             style: { stroke: color, strokeWidth: 2, opacity: 0.5, strokeDasharray: '6 4' },
             markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color },
@@ -146,13 +146,13 @@ function layoutBranchTree(
         },
       });
 
-      // Edge from previous commit in this branch
+      // Edge: older commit → newer commit (parent → child)
       if (ci > 0) {
         const prevNodeId = `${branch.name}::${branchCommits[ci - 1].sha}`;
         allEdges.push({
-          id: `e-${prevNodeId}-${nodeId}`,
-          source: prevNodeId,
-          target: nodeId,
+          id: `e-${nodeId}-${prevNodeId}`,
+          source: nodeId,
+          target: prevNodeId,
           type: 'smoothstep',
           animated: false,
           style: { stroke: color, strokeWidth: 2, opacity: 0.7 },
@@ -160,16 +160,16 @@ function layoutBranchTree(
         });
       }
 
-      // Cross-branch merge links
+      // Cross-branch merge links: parent → merge commit
       if (isMerge) {
         for (const parent of commit.parents) {
           if (placedCommits.has(parent.sha)) {
             const parentInfo = placedCommits.get(parent.sha)!;
             if (parentInfo.lane !== lane) {
               allEdges.push({
-                id: `e-merge-${nodeId}-${parent.sha}`,
-                source: nodeId,
-                target: parentInfo.nodeId,
+                id: `e-merge-${parent.sha}-${nodeId}`,
+                source: parentInfo.nodeId,
+                target: nodeId,
                 type: 'smoothstep',
                 style: { stroke: color, strokeWidth: 1.5, strokeDasharray: '5 3', opacity: 0.4 },
                 markerEnd: { type: MarkerType.ArrowClosed, width: 8, height: 8, color },
@@ -182,7 +182,7 @@ function layoutBranchTree(
       row++;
     }
 
-    // Connect last branch commit to fork point on default branch
+    // Connect fork point on default branch → oldest branch commit (shows origin)
     if (forkCommit && placedCommits.has(forkCommit.sha) && branchCommits.length > 0) {
       const lastNodeId = `${branch.name}::${branchCommits[branchCommits.length - 1].sha}`;
       const forkInfo = placedCommits.get(forkCommit.sha)!;
@@ -194,9 +194,9 @@ function layoutBranchTree(
       }
 
       allEdges.push({
-        id: `e-fork-${lastNodeId}-${forkInfo.nodeId}`,
-        source: lastNodeId,
-        target: forkInfo.nodeId,
+        id: `e-fork-${forkInfo.nodeId}-${lastNodeId}`,
+        source: forkInfo.nodeId,
+        target: lastNodeId,
         type: 'smoothstep',
         style: { stroke: color, strokeWidth: 2.5, opacity: 0.6, strokeDasharray: '8 4' },
         markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color },

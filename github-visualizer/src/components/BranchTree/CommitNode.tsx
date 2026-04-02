@@ -46,6 +46,7 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
       }}
     >
       <Handle type="target" position={Position.Top} style={{ background: d.color, width: 8, height: 8, border: '2px solid var(--bg-primary)' }} />
+      <Handle type="target" position={Position.Left} id="left-in" style={{ background: d.color, width: 8, height: 8, border: '2px solid var(--bg-primary)' }} />
 
       {/* Branch label for head commits */}
       {d.isHead && (
