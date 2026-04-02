@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { X, Import, FunctionSquare, Type, Box, FileOutput, Variable, Loader2, Sparkles } from 'lucide-react';
+import { X, Import, FunctionSquare, Type, Box, FileOutput, Variable, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 import { codeToHtml } from 'shiki';
 import { useRepoStore } from '@/store/useRepoStore.ts';
 import { getExtensionColor, getExtension } from '@/utils/fileIcons.ts';
@@ -495,11 +495,11 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [highlightedHtml, setHighlightedHtml] = useState<Map<number, string>>(new Map());
 
-  // AI state - load cached results from localStorage
+  // AI state - load cached results from localStorage (keyed by language)
   const [aiSectionIdx, setAiSectionIdx] = useState<number | null>(null);
   const [aiResult, setAiResult] = useState<Map<number, string>>(() => {
     try {
-      const cached = localStorage.getItem(`ai_cache_${filePath}`);
+      const cached = localStorage.getItem(`ai_cache_${filePath}_${aiLanguage}`);
       if (cached) {
         const parsed = JSON.parse(cached) as Record<string, string>;
         return new Map(Object.entries(parsed).map(([k, v]) => [Number(k), v]));
@@ -509,6 +509,21 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
   });
   const [aiLoading, setAiLoading] = useState<number | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  // Reload cached AI results when language changes
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(`ai_cache_${filePath}_${aiLanguage}`);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Record<string, string>;
+        setAiResult(new Map(Object.entries(parsed).map(([k, v]) => [Number(k), v])));
+      } else {
+        setAiResult(new Map());
+      }
+    } catch {
+      setAiResult(new Map());
+    }
+  }, [aiLanguage, filePath]);
 
   const content = fileContents.get(filePath);
   const isLoading = loadingFiles.has(filePath);
@@ -575,15 +590,15 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
     try {
       const obj: Record<string, string> = {};
       results.forEach((v, k) => { obj[String(k)] = v; });
-      localStorage.setItem(`ai_cache_${filePath}`, JSON.stringify(obj));
+      localStorage.setItem(`ai_cache_${filePath}_${aiLanguage}`, JSON.stringify(obj));
     } catch { /* ignore quota errors */ }
-  }, [filePath]);
+  }, [filePath, aiLanguage]);
 
-  const handleAiExplain = useCallback(async (sectionIdx: number) => {
+  const handleAiExplain = useCallback(async (sectionIdx: number, forceReanalyze = false) => {
     const section = sections[sectionIdx];
     if (!section || !aiApiKey) return;
 
-    if (aiResult.has(sectionIdx)) {
+    if (aiResult.has(sectionIdx) && !forceReanalyze) {
       setAiSectionIdx(sectionIdx);
       return;
     }
@@ -760,6 +775,15 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
                       <span>AI Analysis</span>
                       {isAiLoading && (
                         <Loader2 size={12} style={{ animation: 'spin 1s linear infinite', marginLeft: 4 }} />
+                      )}
+                      {!isAiLoading && aiResult.has(i) && (
+                        <button
+                          className={styles.aiCloseBtn}
+                          onClick={() => handleAiExplain(i, true)}
+                          title="Re-analyze"
+                        >
+                          <RefreshCw size={12} />
+                        </button>
                       )}
                       <button
                         className={styles.aiCloseBtn}

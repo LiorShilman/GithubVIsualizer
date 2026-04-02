@@ -16,6 +16,7 @@ import Dagre from '@dagrejs/dagre';
 import type { GraphNode, GraphEdge } from '@/types/index.ts';
 import { getExtensionColor } from '@/utils/fileIcons.ts';
 import { CustomNode } from './CustomNode.tsx';
+import { CategoryGroupNode } from './CategoryGroupNode.tsx';
 import { NodeContextMenu } from './NodeContextMenu.tsx';
 import styles from './DependencyGraph.module.css';
 
@@ -26,23 +27,48 @@ interface GraphCanvasProps {
   onOpenCodeMap: (filePath: string) => void;
 }
 
-const nodeTypes = { custom: CustomNode };
+const nodeTypes = { custom: CustomNode, categoryGroup: CategoryGroupNode };
 
-const DIR_COLORS = [
+const CATEGORY_COLORS: Record<string, string> = {
+  components: '#6366F1',
+  services: '#14B8A6',
+  store: '#F59E0B',
+  utils: '#84CC16',
+  hooks: '#EC4899',
+  types: '#8B5CF6',
+  styles: '#06B6D4',
+  pages: '#EF4444',
+  layouts: '#F97316',
+  lib: '#A78BFA',
+  assets: '#FB923C',
+  config: '#64748B',
+};
+
+const FALLBACK_COLORS = [
   '#6366F1', '#EC4899', '#14B8A6', '#F59E0B', '#8B5CF6',
   '#EF4444', '#06B6D4', '#84CC16', '#F97316', '#A78BFA',
 ];
 
-function getDirColor(dir: string): string {
-  let hash = 0;
-  for (let i = 0; i < dir.length; i++) {
-    hash = dir.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return DIR_COLORS[Math.abs(hash) % DIR_COLORS.length];
+function getCategory(dir: string): string {
+  const parts = dir.split('/').filter(Boolean);
+  // Skip 'src' to find the meaningful category
+  const start = parts[0] === 'src' ? 1 : 0;
+  if (parts.length > start) return parts[start].toLowerCase();
+  return parts[0]?.toLowerCase() || 'root';
 }
 
+function getCategoryLabel(cat: string): string {
+  return cat.charAt(0).toUpperCase() + cat.slice(1);
+}
+
+function getCategoryColor(cat: string, idx: number): string {
+  return CATEGORY_COLORS[cat] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+}
+
+const GROUP_PAD = 40;
+
 function layoutNodes(graphNodes: GraphNode[], allEdges: GraphEdge[]): Node[] {
-  const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+  const g = new Dagre.graphlib.Graph({ compound: true }).setDefaultEdgeLabel(() => ({}));
 
   g.setGraph({
     rankdir: 'TB',
@@ -58,6 +84,14 @@ function layoutNodes(graphNodes: GraphNode[], allEdges: GraphEdge[]): Node[] {
     exportCounts.set(edge.source, (exportCounts.get(edge.source) || 0) + 1);
   }
 
+  // Group nodes by category
+  const categoryMap = new Map<string, GraphNode[]>();
+  for (const node of graphNodes) {
+    const cat = getCategory(node.directory);
+    if (!categoryMap.has(cat)) categoryMap.set(cat, []);
+    categoryMap.get(cat)!.push(node);
+  }
+
   for (const node of graphNodes) {
     g.setNode(node.id, { width: 200, height: 50 });
   }
@@ -70,27 +104,74 @@ function layoutNodes(graphNodes: GraphNode[], allEdges: GraphEdge[]): Node[] {
 
   Dagre.layout(g);
 
-  return graphNodes.map((node) => {
+  // Build positioned nodes
+  const positioned = graphNodes.map((node) => {
     const pos = g.node(node.id);
-    const dirColor = getDirColor(node.directory);
+    const cat = getCategory(node.directory);
+    return { node, x: pos.x - 100, y: pos.y - 25, cat };
+  });
+
+  // Compute bounding boxes for each category
+  const categories = [...categoryMap.keys()];
+  const groupNodes: Node[] = [];
+
+  for (let ci = 0; ci < categories.length; ci++) {
+    const cat = categories[ci];
+    const members = positioned.filter((p) => p.cat === cat);
+    if (members.length === 0) continue;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const m of members) {
+      minX = Math.min(minX, m.x);
+      minY = Math.min(minY, m.y);
+      maxX = Math.max(maxX, m.x + 200);
+      maxY = Math.max(maxY, m.y + 50);
+    }
+
+    const color = getCategoryColor(cat, ci);
+
+    groupNodes.push({
+      id: `group-${cat}`,
+      type: 'categoryGroup',
+      position: { x: minX - GROUP_PAD, y: minY - GROUP_PAD - 28 },
+      data: {
+        label: getCategoryLabel(cat),
+        color,
+        count: members.length,
+      },
+      style: {
+        width: maxX - minX + GROUP_PAD * 2,
+        height: maxY - minY + GROUP_PAD * 2 + 28,
+      },
+      selectable: false,
+      draggable: false,
+    });
+  }
+
+  const fileNodes: Node[] = positioned.map((p) => {
+    const cat = getCategory(p.node.directory);
+    const catColor = getCategoryColor(cat, categories.indexOf(cat));
 
     return {
-      id: node.id,
+      id: p.node.id,
       type: 'custom',
-      position: { x: pos.x - 100, y: pos.y - 25 },
+      position: { x: p.x, y: p.y },
       data: {
-        label: node.label,
-        extension: node.extension,
-        color: getExtensionColor(node.extension),
-        dirColor,
-        importCount: node.importCount,
-        exportCount: exportCounts.get(node.id) || 0,
-        directory: node.directory,
+        label: p.node.label,
+        extension: p.node.extension,
+        color: getExtensionColor(p.node.extension),
+        dirColor: catColor,
+        importCount: p.node.importCount,
+        exportCount: exportCounts.get(p.node.id) || 0,
+        directory: p.node.directory,
         isHighlighted: false,
         isDimmed: false,
       },
     };
   });
+
+  // Group nodes go first (rendered behind) then file nodes
+  return [...groupNodes, ...fileNodes];
 }
 
 function buildEdges(graphEdges: GraphEdge[]): Edge[] {
@@ -135,14 +216,17 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
   useMemo(() => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      setFlowNodes(initialNodes.map((n) => ({
-        ...n,
-        data: {
-          ...n.data,
-          isDimmed: !n.id.toLowerCase().includes(q),
-          isHighlighted: n.id.toLowerCase().includes(q),
-        },
-      })));
+      setFlowNodes(initialNodes.map((n) => {
+        if (n.type === 'categoryGroup') return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            isDimmed: !n.id.toLowerCase().includes(q),
+            isHighlighted: n.id.toLowerCase().includes(q),
+          },
+        };
+      }));
     } else if (!hoveredRef.current) {
       setFlowNodes(initialNodes);
     }
@@ -157,10 +241,10 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
     if (!nodeId) {
       // Reset all nodes and edges to default
       setFlowNodes((nds) =>
-        nds.map((n) => ({
-          ...n,
-          data: { ...n.data, isHighlighted: false, isDimmed: false },
-        }))
+        nds.map((n) => {
+          if (n.type === 'categoryGroup') return n;
+          return { ...n, data: { ...n.data, isHighlighted: false, isDimmed: false } };
+        })
       );
       setFlowEdges((eds) =>
         eds.map((e) => ({
@@ -199,14 +283,17 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
     }
 
     setFlowNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        data: {
-          ...n.data,
-          isDimmed: !connectedIds.has(n.id),
-          isHighlighted: n.id === nodeId,
-        },
-      }))
+      nds.map((n) => {
+        if (n.type === 'categoryGroup') return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            isDimmed: !connectedIds.has(n.id),
+            isHighlighted: n.id === nodeId,
+          },
+        };
+      })
     );
 
     setFlowEdges((eds) =>
@@ -234,6 +321,7 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
   }, [graphEdges, searchQuery, setFlowNodes, setFlowEdges]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    if (node.type === 'categoryGroup') return;
     const rect = (_.target as HTMLElement).closest('.react-flow__node')?.getBoundingClientRect();
     const x = rect ? Math.min(rect.right + 8, window.innerWidth - 340) : _.clientX;
     const y = rect ? Math.min(rect.top, window.innerHeight - 400) : _.clientY;
@@ -246,6 +334,7 @@ export function GraphCanvas({ nodes: graphNodes, edges: graphEdges, searchQuery,
   }, []);
 
   const onNodeMouseEnter = useCallback((_: React.MouseEvent, node: Node) => {
+    if (node.type === 'categoryGroup') return;
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     hoveredRef.current = node.id;
     hoverTimerRef.current = setTimeout(() => {
