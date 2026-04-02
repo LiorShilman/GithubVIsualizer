@@ -14,6 +14,12 @@ const DependencyGraph = lazy(() =>
   }))
 );
 
+const BranchTree = lazy(() =>
+  import('@/components/BranchTree/BranchTree.tsx').then((m) => ({
+    default: m.BranchTree,
+  }))
+);
+
 export default function App() {
   const status = useRepoStore((s) => s.status);
   const error = useRepoStore((s) => s.error);
@@ -41,9 +47,13 @@ export default function App() {
           <div style={{ flex: 1, overflow: 'hidden' }}>
             {activeTab === 'tree' ? (
               <FileTree />
-            ) : (
+            ) : activeTab === 'graph' ? (
               <Suspense fallback={<LoadingSpinner message="Loading graph..." />}>
                 <DependencyGraph />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<LoadingSpinner message="Loading branches..." />}>
+                <BranchTree />
               </Suspense>
             )}
           </div>

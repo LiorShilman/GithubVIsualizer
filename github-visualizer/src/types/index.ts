@@ -58,5 +58,30 @@ export interface RateLimitInfo {
   reset: Date | null;
 }
 
+export interface GitHubBranch {
+  name: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
+  protected: boolean;
+}
+
+export interface GitHubCommit {
+  sha: string;
+  commit: {
+    message: string;
+    author: {
+      name: string;
+      date: string;
+    };
+  };
+  author: {
+    login: string;
+    avatar_url: string;
+  } | null;
+  parents: { sha: string }[];
+}
+
 export type AppStatus = 'idle' | 'loading' | 'success' | 'error';
-export type ActiveTab = 'tree' | 'graph';
+export type ActiveTab = 'tree' | 'graph' | 'branches';

@@ -1,4 +1,4 @@
-import type { GitHubRepo, GitHubLanguages, TreeNode, RateLimitInfo } from '@/types/index.ts';
+import type { GitHubRepo, GitHubLanguages, TreeNode, RateLimitInfo, GitHubBranch, GitHubCommit } from '@/types/index.ts';
 import { parseRateLimitHeaders } from '@/utils/rateLimit.ts';
 
 const BASE_URL = 'https://api.github.com';
@@ -87,6 +87,27 @@ export async function fetchRepoTree(
 interface ContentResponse {
   content: string;
   encoding: string;
+}
+
+export async function fetchBranches(
+  owner: string,
+  repo: string,
+  token?: string
+): Promise<GitHubBranch[]> {
+  return fetchGitHub<GitHubBranch[]>(`/repos/${owner}/${repo}/branches?per_page=100`, token);
+}
+
+export async function fetchBranchCommits(
+  owner: string,
+  repo: string,
+  branch: string,
+  token?: string,
+  perPage = 40
+): Promise<GitHubCommit[]> {
+  return fetchGitHub<GitHubCommit[]>(
+    `/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(branch)}&per_page=${perPage}`,
+    token
+  );
 }
 
 export async function fetchFileContent(

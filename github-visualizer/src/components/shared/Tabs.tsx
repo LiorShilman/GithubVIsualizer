@@ -24,6 +24,12 @@ export function Tabs({ active, onChange }: TabsProps) {
         active={active}
         onClick={onChange}
       />
+      <TabButton
+        label="Branch Tree"
+        value="branches"
+        active={active}
+        onClick={onChange}
+      />
     </div>
   );
 }
