@@ -59,6 +59,7 @@ const DEEP_PARSE_THRESHOLD = 15;
 function parseInnerSections(code: string, startLineOffset: number, isClass: boolean): CodeSection[] {
   const lines = code.split('\n');
   const inner: CodeSection[] = [];
+  const propertyLines: number[] = []; // collect property line indices to group later
 
   function addInner(type: CodeSection['type'], name: string, sig: string, start: number, end: number) {
     const codeLines = lines.slice(start, end + 1);
@@ -73,43 +74,34 @@ function parseInnerSections(code: string, startLineOffset: number, isClass: bool
     });
   }
 
-  // Skip the first line (signature) and last line (closing brace)
   for (let i = 1; i < lines.length - 1; i++) {
     const trimmed = lines[i].trim();
     if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) continue;
 
     if (isClass) {
-      // Class method: [private/public/protected] [async] [get/set] name(...) {
+      // Class method: [modifiers] [async] [get/set] name(...) {
       const methodMatch = trimmed.match(
         /^(?:(?:private|public|protected|static|abstract|readonly)\s+)*(?:async\s+)?(?:get\s+|set\s+)?(\w+)\s*(?:<[^>]*>)?\s*\(/
       );
-      if (methodMatch && trimmed.includes('{')) {
-        const end = findMatchingBrace(lines, i);
+      if (methodMatch) {
+        let end = i;
+        if (trimmed.includes('{')) {
+          end = findMatchingBrace(lines, i);
+        } else {
+          // Multi-line signature - find the opening brace
+          let j = i + 1;
+          while (j < lines.length - 1 && !lines[j].includes('{')) j++;
+          if (j < lines.length - 1) {
+            end = findMatchingBrace(lines, j);
+          }
+        }
         addInner('function', methodMatch[1], trimmed, i, end);
         i = end;
         continue;
       }
 
-      // Class method without { on same line (multi-line signature)
-      if (methodMatch && !trimmed.includes('{')) {
-        let j = i + 1;
-        while (j < lines.length - 1 && !lines[j].includes('{')) j++;
-        if (j < lines.length - 1) {
-          const end = findMatchingBrace(lines, j);
-          addInner('function', methodMatch[1], trimmed, i, end);
-          i = end;
-          continue;
-        }
-      }
-
-      // Class property: name: Type = value; or name = value;
-      const propMatch = trimmed.match(
-        /^(?:(?:private|public|protected|static|readonly|abstract)\s+)*(\w+)(?:\s*[!?]?\s*:\s*[^=]+)?\s*=/
-      );
-      if (propMatch && !trimmed.includes('{')) {
-        addInner('variable', propMatch[1], trimmed, i, i);
-        continue;
-      }
+      // Everything else in a class (properties, decorators) - collect for grouping
+      propertyLines.push(i);
     } else {
       // Inner function declaration
       const funcMatch = trimmed.match(/^(?:async\s+)?function\s+(\w+)/);
@@ -120,7 +112,7 @@ function parseInnerSections(code: string, startLineOffset: number, isClass: bool
         continue;
       }
 
-      // Inner const arrow functions
+      // Inner const arrow functions (only multi-line / meaningful ones)
       const constMatch = trimmed.match(/^const\s+(\w+)\s*=\s*/);
       if (constMatch) {
         const afterEquals = trimmed.slice(trimmed.indexOf('=') + 1).trim();
@@ -147,7 +139,10 @@ function parseInnerSections(code: string, startLineOffset: number, isClass: bool
               if (j > i && parenDepth <= 0 && braceDepth <= 0) { end = j; break; }
             }
           }
-          addInner(isFunc ? 'function' : 'variable', constMatch[1], trimmed, i, end);
+          // Only add if more than 1 line (skip trivial one-liners)
+          if (end > i || isFunc) {
+            addInner('function', constMatch[1], trimmed, i, end);
+          }
           i = end;
           continue;
         }
@@ -170,6 +165,22 @@ function parseInnerSections(code: string, startLineOffset: number, isClass: bool
         continue;
       }
     }
+  }
+
+  // Group all class properties into one "Properties" section
+  if (isClass && propertyLines.length > 0) {
+    const propCode = propertyLines.map((idx) => lines[idx]).join('\n');
+    const firstLine = propertyLines[0];
+    const lastLine = propertyLines[propertyLines.length - 1];
+    inner.unshift({
+      type: 'variable',
+      name: `Properties (${propertyLines.length})`,
+      signature: `${propertyLines.length} class properties`,
+      startLine: startLineOffset + firstLine + 1,
+      endLine: startLineOffset + lastLine + 1,
+      code: propCode,
+      lineCount: propertyLines.length,
+    });
   }
 
   return inner;
