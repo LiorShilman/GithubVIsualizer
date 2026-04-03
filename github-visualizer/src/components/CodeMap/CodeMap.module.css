@@ -89,7 +89,7 @@
 .filePath {
   font-size: 0.75rem;
   color: var(--text-muted);
-  font-family: 'Fira Code', monospace;
+  font-family: 'Fira Code', 'Noto Sans Hebrew', monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -253,7 +253,7 @@
 .sectionSignature {
   font-size: 0.72rem;
   color: var(--text-muted);
-  font-family: 'Fira Code', monospace;
+  font-family: 'Fira Code', 'Noto Sans Hebrew', monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -290,7 +290,7 @@
 
 .sectionCode pre {
   margin: 0;
-  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-family: 'Fira Code', 'Noto Sans Hebrew', 'Cascadia Code', 'Consolas', monospace;
   font-size: 0.8rem;
   line-height: 1.5;
   tab-size: 2;
@@ -387,7 +387,7 @@
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 0.78rem;
-  font-family: 'Fira Code', monospace;
+  font-family: 'Fira Code', 'Noto Sans Hebrew', monospace;
   color: #8B5CF6;
   direction: ltr;
   unicode-bidi: embed;
