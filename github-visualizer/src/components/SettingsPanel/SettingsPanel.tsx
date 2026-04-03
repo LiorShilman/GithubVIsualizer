@@ -1,4 +1,4 @@
-import { Settings, Moon, Sun, Brain } from 'lucide-react';
+import { Settings, Moon, Sun, Brain, FolderGit2 } from 'lucide-react';
 import { useState } from 'react';
 import { useRepoStore } from '@/store/useRepoStore.ts';
 import { AI_MODELS } from '@/services/aiAnalysis.ts';
@@ -17,16 +17,18 @@ export function SettingsPanel() {
   const toggleShowConfig = useRepoStore((s) => s.toggleShowConfig);
   const setGraphFilter = useRepoStore((s) => s.setGraphFilter);
   const aiLanguage = useRepoStore((s) => s.aiLanguage);
+  const githubUser = useRepoStore((s) => s.githubUser);
   const setAiModel = useRepoStore((s) => s.setAiModel);
   const setAiLanguage = useRepoStore((s) => s.setAiLanguage);
   const setAnthropicKey = useRepoStore((s) => s.setAnthropicKey);
   const setOpenaiKey = useRepoStore((s) => s.setOpenaiKey);
+  const setGithubUser = useRepoStore((s) => s.setGithubUser);
 
   const claudeReady = anthropicKey.length > 0;
   const openaiReady = openaiKey.length > 0;
 
   return (
-    <>
+    <div className={styles.wrapper}>
       <button className={styles.toggleBtn} onClick={() => setIsOpen(!isOpen)} title="Settings">
         <Settings size={18} />
       </button>
@@ -67,6 +69,28 @@ export function SettingsPanel() {
               }
               className={styles.slider}
             />
+          </div>
+
+          <div className={styles.divider} />
+
+          <h3 className={styles.title}>
+            <FolderGit2 size={14} />
+            GitHub Profile
+          </h3>
+
+          <div className={styles.optionCol}>
+            <label className={styles.label}>GitHub Username</label>
+            <input
+              className={styles.apiKeyInput}
+              type="text"
+              placeholder="e.g. octocat"
+              value={githubUser}
+              onChange={(e) => setGithubUser(e.target.value.trim())}
+            />
+            <div className={styles.aiStatus}>
+              <span className={`${styles.statusDot} ${githubUser ? styles.statusActive : ''}`} />
+              {githubUser ? `Repos for ${githubUser}` : 'Not set'}
+            </div>
           </div>
 
           <div className={styles.divider} />
@@ -143,6 +167,6 @@ export function SettingsPanel() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

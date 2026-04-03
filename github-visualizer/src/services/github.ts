@@ -1,4 +1,4 @@
-import type { GitHubRepo, GitHubLanguages, TreeNode, RateLimitInfo, GitHubBranch, GitHubCommit } from '@/types/index.ts';
+import type { GitHubRepo, GitHubLanguages, TreeNode, RateLimitInfo, GitHubBranch, GitHubCommit, GitHubContributor, CommitDetail } from '@/types/index.ts';
 import { parseRateLimitHeaders } from '@/utils/rateLimit.ts';
 
 const BASE_URL = 'https://api.github.com';
@@ -106,6 +106,71 @@ export async function fetchBranchCommits(
 ): Promise<GitHubCommit[]> {
   return fetchGitHub<GitHubCommit[]>(
     `/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(branch)}&per_page=${perPage}`,
+    token
+  );
+}
+
+export async function fetchContributors(
+  owner: string,
+  repo: string,
+  token?: string
+): Promise<GitHubContributor[]> {
+  return fetchGitHub<GitHubContributor[]>(
+    `/repos/${owner}/${repo}/contributors?per_page=100`,
+    token
+  );
+}
+
+export async function fetchCommitDetail(
+  owner: string,
+  repo: string,
+  sha: string,
+  token?: string
+): Promise<CommitDetail> {
+  return fetchGitHub<CommitDetail>(
+    `/repos/${owner}/${repo}/commits/${sha}`,
+    token
+  );
+}
+
+export interface GitHubUserRepo {
+  name: string;
+  full_name: string;
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  updated_at: string;
+  fork: boolean;
+  private: boolean;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
+export async function fetchUserRepos(
+  username: string,
+  token?: string,
+  page = 1,
+  perPage = 100
+): Promise<GitHubUserRepo[]> {
+  // If we have a token, try authenticated endpoint first (includes private repos)
+  if (token) {
+    try {
+      const allRepos = await fetchGitHub<GitHubUserRepo[]>(
+        `/user/repos?per_page=${perPage}&page=${page}&sort=updated&direction=desc&affiliation=owner`,
+        token
+      );
+      // Filter to only repos owned by this user
+      return allRepos.filter((r) => r.owner.login.toLowerCase() === username.toLowerCase());
+    } catch {
+      // Fall back to public endpoint
+    }
+  }
+  return fetchGitHub<GitHubUserRepo[]>(
+    `/users/${username}/repos?per_page=${perPage}&page=${page}&sort=updated&direction=desc`,
     token
   );
 }

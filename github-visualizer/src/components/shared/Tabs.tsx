@@ -11,6 +11,8 @@ export function Tabs({ active, onChange }: TabsProps) {
       display: 'flex',
       borderBottom: '1px solid var(--border)',
       background: 'var(--bg-secondary)',
+      overflowX: 'auto',
+      scrollbarWidth: 'none',
     }}>
       <TabButton
         label="File Tree"
@@ -33,6 +35,42 @@ export function Tabs({ active, onChange }: TabsProps) {
       <TabButton
         label="Architecture"
         value="architecture"
+        active={active}
+        onClick={onChange}
+      />
+      <TabButton
+        label="Heatmap"
+        value="heatmap"
+        active={active}
+        onClick={onChange}
+      />
+      <TabButton
+        label="Contributors"
+        value="contributors"
+        active={active}
+        onClick={onChange}
+      />
+      <TabButton
+        label="Health"
+        value="health"
+        active={active}
+        onClick={onChange}
+      />
+      <TabButton
+        label="Tech Radar"
+        value="radar"
+        active={active}
+        onClick={onChange}
+      />
+      <TabButton
+        label="Timeline"
+        value="timeline"
+        active={active}
+        onClick={onChange}
+      />
+      <TabButton
+        label="Search"
+        value="search"
         active={active}
         onClick={onChange}
       />
@@ -65,6 +103,7 @@ function TabButton({
         fontSize: '0.85rem',
         cursor: 'pointer',
         transition: 'color 0.15s, border-color 0.15s',
+        whiteSpace: 'nowrap',
       }}
     >
       {label}

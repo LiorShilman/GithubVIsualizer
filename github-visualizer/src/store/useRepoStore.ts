@@ -111,6 +111,7 @@ interface RepoStore {
   aiLanguage: AILanguage;
   anthropicKey: string;
   openaiKey: string;
+  githubUser: string;
 
   setRepoUrl: (url: string) => void;
   setToken: (token: string) => void;
@@ -126,15 +127,17 @@ interface RepoStore {
   setAiLanguage: (lang: AILanguage) => void;
   setAnthropicKey: (key: string) => void;
   setOpenaiKey: (key: string) => void;
+  setGithubUser: (user: string) => void;
   getActiveAiKey: () => string;
 
+  resetToHome: () => void;
   loadRepo: () => Promise<void>;
   loadFileContent: (path: string) => Promise<void>;
   buildDependencyGraph: () => Promise<void>;
 }
 
 export const useRepoStore = create<RepoStore>((set, get) => ({
-  repoUrl: '',
+  repoUrl: localStorage.getItem('last_repo_url') || '',
   token: localStorage.getItem('gh_token') || import.meta.env.VITE_GITHUB_TOKEN || '',
   status: 'idle',
   error: null,
@@ -169,6 +172,7 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
   aiApiKey: localStorage.getItem('ai_api_key') || '',
   aiModel: (localStorage.getItem('ai_model') as AIModel) || 'claude-sonnet-4-6',
   aiLanguage: (localStorage.getItem('ai_language') as AILanguage) || 'en',
+  githubUser: localStorage.getItem('github_user') || '',
 
   setRepoUrl: (url) => set({ repoUrl: url }),
   setToken: (token) => {
@@ -219,6 +223,10 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
     localStorage.setItem('openai_api_key', key);
     set({ openaiKey: key });
   },
+  setGithubUser: (user) => {
+    localStorage.setItem('github_user', user);
+    set({ githubUser: user });
+  },
   getActiveAiKey: () => {
     const { aiModel, anthropicKey, openaiKey, aiApiKey } = get();
     const provider = getProviderForModel(aiModel);
@@ -226,6 +234,20 @@ export const useRepoStore = create<RepoStore>((set, get) => ({
     if (provider === 'openai' && openaiKey) return openaiKey;
     return aiApiKey;
   },
+
+  resetToHome: () => set({
+    status: 'idle',
+    error: null,
+    repoInfo: null,
+    tree: [],
+    nestedTree: null,
+    selectedFile: null,
+    fileContents: new Map(),
+    graphNodes: [],
+    graphEdges: [],
+    openFolders: new Set(),
+    activeTab: 'tree',
+  }),
 
   loadRepo: async () => {
     const { repoUrl, token } = get();

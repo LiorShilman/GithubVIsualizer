@@ -6,7 +6,7 @@ import { FileTree } from '@/components/FileTree/FileTree.tsx';
 import { Tabs } from '@/components/shared/Tabs.tsx';
 import { ErrorBanner } from '@/components/shared/ErrorBanner.tsx';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner.tsx';
-import { SettingsPanel } from '@/components/SettingsPanel/SettingsPanel.tsx';
+
 
 const DependencyGraph = lazy(() =>
   import('@/components/DependencyGraph/DependencyGraph.tsx').then((m) => ({
@@ -26,6 +26,48 @@ const Architecture = lazy(() =>
   }))
 );
 
+const Heatmap = lazy(() =>
+  import('@/components/Heatmap/Heatmap.tsx').then((m) => ({
+    default: m.Heatmap,
+  }))
+);
+
+const Contributors = lazy(() =>
+  import('@/components/Contributors/Contributors.tsx').then((m) => ({
+    default: m.Contributors,
+  }))
+);
+
+const HealthDashboard = lazy(() =>
+  import('@/components/HealthDashboard/HealthDashboard.tsx').then((m) => ({
+    default: m.HealthDashboard,
+  }))
+);
+
+const TechRadar = lazy(() =>
+  import('@/components/TechRadar/TechRadar.tsx').then((m) => ({
+    default: m.TechRadar,
+  }))
+);
+
+const Timeline = lazy(() =>
+  import('@/components/Timeline/Timeline.tsx').then((m) => ({
+    default: m.Timeline,
+  }))
+);
+
+const SmartSearch = lazy(() =>
+  import('@/components/SmartSearch/SmartSearch.tsx').then((m) => ({
+    default: m.SmartSearch,
+  }))
+);
+
+const Repositories = lazy(() =>
+  import('@/components/Repositories/Repositories.tsx').then((m) => ({
+    default: m.Repositories,
+  }))
+);
+
 export default function App() {
   const status = useRepoStore((s) => s.status);
   const error = useRepoStore((s) => s.error);
@@ -33,6 +75,7 @@ export default function App() {
   const setActiveTab = useRepoStore((s) => s.setActiveTab);
   const darkMode = useRepoStore((s) => s.darkMode);
   const repoInfo = useRepoStore((s) => s.repoInfo);
+  const githubUser = useRepoStore((s) => s.githubUser);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -41,7 +84,6 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       <InputPanel />
-      <SettingsPanel />
 
       {error && <ErrorBanner message={error} />}
       {status === 'loading' && <LoadingSpinner message="Fetching repository data..." />}
@@ -61,9 +103,33 @@ export default function App() {
               <Suspense fallback={<LoadingSpinner message="Loading branches..." />}>
                 <BranchTree />
               </Suspense>
-            ) : (
+            ) : activeTab === 'architecture' ? (
               <Suspense fallback={<LoadingSpinner message="Analyzing architecture..." />}>
                 <Architecture />
+              </Suspense>
+            ) : activeTab === 'heatmap' ? (
+              <Suspense fallback={<LoadingSpinner message="Loading heatmap..." />}>
+                <Heatmap />
+              </Suspense>
+            ) : activeTab === 'contributors' ? (
+              <Suspense fallback={<LoadingSpinner message="Loading contributors..." />}>
+                <Contributors />
+              </Suspense>
+            ) : activeTab === 'health' ? (
+              <Suspense fallback={<LoadingSpinner message="Analyzing health..." />}>
+                <HealthDashboard />
+              </Suspense>
+            ) : activeTab === 'radar' ? (
+              <Suspense fallback={<LoadingSpinner message="Loading tech radar..." />}>
+                <TechRadar />
+              </Suspense>
+            ) : activeTab === 'timeline' ? (
+              <Suspense fallback={<LoadingSpinner message="Loading timeline..." />}>
+                <Timeline />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<LoadingSpinner message="Loading search..." />}>
+                <SmartSearch />
               </Suspense>
             )}
           </div>
@@ -71,17 +137,26 @@ export default function App() {
       )}
 
       {status === 'idle' && (
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem',
-          color: 'var(--text-muted)',
-        }}>
-          <p style={{ fontSize: '1.1rem' }}>GitHub Repository Visualizer</p>
-          <p style={{ fontSize: '0.85rem' }}>Enter a GitHub repo URL above to get started</p>
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {githubUser ? (
+            <Suspense fallback={<LoadingSpinner message="Loading repositories..." />}>
+              <Repositories />
+            </Suspense>
+          ) : (
+            <div style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              color: 'var(--text-muted)',
+            }}>
+              <p style={{ fontSize: '1.1rem' }}>GitHub Repository Visualizer</p>
+              <p style={{ fontSize: '0.85rem' }}>Enter a GitHub repo URL above to get started</p>
+              <p style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>Or set your GitHub username in Settings to browse your repos</p>
+            </div>
+          )}
         </div>
       )}
     </div>

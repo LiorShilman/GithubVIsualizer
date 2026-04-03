@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitMerge, GitCommit, GitBranch } from 'lucide-react';
+import { StyledAvatar } from '@/components/shared/StyledAvatar.tsx';
 
 interface CommitNodeData {
   sha: string;
@@ -152,13 +153,7 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
               {shortSha}
             </code>
             <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              {d.avatar && (
-                <img
-                  src={d.avatar}
-                  alt={d.author}
-                  style={{ width: 14, height: 14, borderRadius: '50%', border: '1px solid var(--border)' }}
-                />
-              )}
+              <StyledAvatar name={d.author} size={14} />
               {d.author}
             </span>
             <span style={{ opacity: 0.5 }} title={dateStr}>{timeAgo}</span>

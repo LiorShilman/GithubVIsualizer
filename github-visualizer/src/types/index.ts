@@ -100,5 +100,34 @@ export interface ArchConnection {
   animated: boolean;
 }
 
+export interface GitHubContributor {
+  login: string;
+  avatar_url: string;
+  contributions: number;
+  html_url: string;
+}
+
+export interface CommitDetail {
+  sha: string;
+  commit: {
+    message: string;
+    author: {
+      name: string;
+      date: string;
+    };
+  };
+  author: {
+    login: string;
+    avatar_url: string;
+  } | null;
+  files?: {
+    filename: string;
+    additions: number;
+    deletions: number;
+    changes: number;
+    status: string;
+  }[];
+}
+
 export type AppStatus = 'idle' | 'loading' | 'success' | 'error';
-export type ActiveTab = 'tree' | 'graph' | 'branches' | 'architecture';
+export type ActiveTab = 'tree' | 'graph' | 'branches' | 'architecture' | 'heatmap' | 'contributors' | 'health' | 'radar' | 'timeline' | 'search';
