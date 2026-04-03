@@ -130,4 +130,4 @@ export interface CommitDetail {
 }
 
 export type AppStatus = 'idle' | 'loading' | 'success' | 'error';
-export type ActiveTab = 'tree' | 'graph' | 'branches' | 'architecture' | 'heatmap' | 'contributors' | 'health' | 'radar' | 'timeline' | 'search';
+export type ActiveTab = 'tree' | 'graph' | 'branches' | 'architecture' | 'heatmap' | 'contributors' | 'health' | 'radar' | 'timeline' | 'search' | 'pulse' | 'insights';

@@ -56,9 +56,21 @@ const Timeline = lazy(() =>
   }))
 );
 
+const Pulse = lazy(() =>
+  import('@/components/Pulse/Pulse.tsx').then((m) => ({
+    default: m.Pulse,
+  }))
+);
+
 const SmartSearch = lazy(() =>
   import('@/components/SmartSearch/SmartSearch.tsx').then((m) => ({
     default: m.SmartSearch,
+  }))
+);
+
+const Insights = lazy(() =>
+  import('@/components/Insights/Insights.tsx').then((m) => ({
+    default: m.Insights,
   }))
 );
 
@@ -127,9 +139,17 @@ export default function App() {
               <Suspense fallback={<LoadingSpinner message="Loading timeline..." />}>
                 <Timeline />
               </Suspense>
-            ) : (
+            ) : activeTab === 'search' ? (
               <Suspense fallback={<LoadingSpinner message="Loading search..." />}>
                 <SmartSearch />
+              </Suspense>
+            ) : activeTab === 'pulse' ? (
+              <Suspense fallback={<LoadingSpinner message="Loading pulse..." />}>
+                <Pulse />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<LoadingSpinner message="Loading insights..." />}>
+                <Insights />
               </Suspense>
             )}
           </div>

@@ -74,6 +74,18 @@ export function Tabs({ active, onChange }: TabsProps) {
         active={active}
         onClick={onChange}
       />
+      <TabButton
+        label="Pulse"
+        value="pulse"
+        active={active}
+        onClick={onChange}
+      />
+      <TabButton
+        label="Insights"
+        value="insights"
+        active={active}
+        onClick={onChange}
+      />
     </div>
   );
 }

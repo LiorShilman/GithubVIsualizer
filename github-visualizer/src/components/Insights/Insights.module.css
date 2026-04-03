@@ -1,0 +1,430 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 0 2rem;
+}
+
+.loadingState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  color: var(--text-muted);
+}
+
+.loadingSub {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════
+   Stat Cards Row
+   ═══════════════════════════════════════ */
+.statCards {
+  display: flex;
+  gap: 8px;
+  padding: 14px;
+  overflow-x: auto;
+}
+
+.statCards::-webkit-scrollbar { height: 3px; }
+.statCards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+  min-width: 140px;
+  transition: all 0.15s;
+}
+
+.statCard:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.statIcon { flex-shrink: 0; }
+
+.statInfo { min-width: 0; }
+
+.statValue {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════
+   Charts Grid
+   ═══════════════════════════════════════ */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 0 14px;
+}
+
+@media (max-width: 800px) {
+  .chartsGrid { grid-template-columns: 1fr; }
+}
+
+.chartCard {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chartTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.chartSub {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+/* ═══════════════════════════════════════
+   Punch Card Heatmap
+   ═══════════════════════════════════════ */
+.punchCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.punchRow {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.punchDayLabel {
+  width: 32px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.punchHourLabel {
+  flex: 1;
+  text-align: center;
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  min-width: 0;
+  max-width: 18px;
+}
+
+.punchCell {
+  flex: 1;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  transition: transform 0.15s, background 0.15s;
+  cursor: pointer;
+  min-width: 0;
+  max-width: 18px;
+}
+
+.punchCell:hover {
+  transform: scale(1.3) !important;
+  outline: 1.5px solid var(--accent);
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════
+   Code Frequency Chart
+   ═══════════════════════════════════════ */
+.codeFreqChart {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 120px;
+  flex: 1;
+}
+
+.freqCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.freqBarUp {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.freqBarDown {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.freqFillUp {
+  background: #22C55E;
+  border-radius: 2px 2px 0 0;
+  min-height: 1px;
+  opacity: 0.7;
+  transition: height 0.3s, opacity 0.15s;
+}
+
+.freqFillDown {
+  background: #EF4444;
+  border-radius: 0 0 2px 2px;
+  min-height: 1px;
+  opacity: 0.7;
+  transition: height 0.3s, opacity 0.15s;
+}
+
+.freqCol:hover .freqFillUp,
+.freqCol:hover .freqFillDown {
+  opacity: 1;
+}
+
+.freqLegend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.freqLegendAdd,
+.freqLegendDel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.freqLegendAdd::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #22C55E;
+  opacity: 0.7;
+}
+
+.freqLegendDel::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #EF4444;
+  opacity: 0.7;
+}
+
+.freqLegendAdd { color: #22C55E; }
+.freqLegendDel { color: #EF4444; }
+
+/* ═══════════════════════════════════════
+   Weekly Commits Chart
+   ═══════════════════════════════════════ */
+.weeklyChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100px;
+  padding-bottom: 20px;
+  flex: 1;
+}
+
+.weekCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+  min-width: 0;
+}
+
+.weekBar {
+  width: 100%;
+  max-width: 32px;
+  border-radius: 4px 4px 1px 1px;
+  background: var(--accent);
+  transition: height 0.3s ease, opacity 0.15s;
+  cursor: pointer;
+}
+
+.weekBar:hover {
+  opacity: 1 !important;
+  filter: brightness(1.15);
+}
+
+.weekLabel {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  position: absolute;
+  bottom: -16px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════
+   Contributors List
+   ═══════════════════════════════════════ */
+.contribList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow: auto;
+  max-height: 320px;
+}
+
+.contribRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.1s;
+}
+
+.contribRow:hover {
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.contribRank {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.contribAvatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+}
+
+.contribInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.contribName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+
+.contribBarTrack {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.contribBarFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), #8B5CF6);
+  transition: width 0.4s ease;
+}
+
+.contribStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.contribTotal {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.contribRecent {
+  display: flex;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-family: 'Fira Code', monospace;
+  font-weight: 600;
+}
+
+.contribAdd { color: #22C55E; }
+.contribDel { color: #EF4444; }
+
+/* Mini sparkline per contributor */
+.contribSpark {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 20px;
+  flex-shrink: 0;
+  width: 48px;
+}
+
+.contribSparkBar {
+  flex: 1;
+  border-radius: 1px;
+  background: var(--accent);
+  min-height: 1px;
+  transition: height 0.3s;
+}

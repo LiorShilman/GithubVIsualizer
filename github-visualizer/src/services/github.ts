@@ -194,3 +194,112 @@ export async function fetchFileContent(
   }
   return data.content;
 }
+
+/* ─── Pulse data ─── */
+
+export interface GitHubPR {
+  number: number;
+  title: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  merged_at: string | null;
+  draft: boolean;
+  user: { login: string; avatar_url: string };
+  labels: { name: string; color: string }[];
+  head: { ref: string };
+  base: { ref: string };
+  review_comments: number;
+  comments: number;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+}
+
+export interface GitHubIssue {
+  number: number;
+  title: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  user: { login: string; avatar_url: string };
+  labels: { name: string; color: string }[];
+  comments: number;
+  pull_request?: unknown;
+}
+
+export interface GitHubRelease {
+  tag_name: string;
+  name: string;
+  published_at: string;
+  prerelease: boolean;
+  draft: boolean;
+  author: { login: string; avatar_url: string };
+  body: string;
+  assets: { name: string; download_count: number; size: number }[];
+}
+
+export async function fetchPullRequests(
+  owner: string, repo: string, token?: string, state: 'open' | 'closed' | 'all' = 'all'
+): Promise<GitHubPR[]> {
+  return fetchGitHub<GitHubPR[]>(
+    `/repos/${owner}/${repo}/pulls?state=${state}&sort=updated&direction=desc&per_page=50`,
+    token
+  );
+}
+
+export async function fetchIssues(
+  owner: string, repo: string, token?: string, state: 'open' | 'closed' | 'all' = 'all'
+): Promise<GitHubIssue[]> {
+  const all = await fetchGitHub<GitHubIssue[]>(
+    `/repos/${owner}/${repo}/issues?state=${state}&sort=updated&direction=desc&per_page=50`,
+    token
+  );
+  // GitHub API returns PRs as issues too — filter them out
+  return all.filter((i) => !i.pull_request);
+}
+
+export async function fetchReleases(
+  owner: string, repo: string, token?: string
+): Promise<GitHubRelease[]> {
+  return fetchGitHub<GitHubRelease[]>(
+    `/repos/${owner}/${repo}/releases?per_page=10`,
+    token
+  );
+}
+
+/* ─── Statistics API (for Insights) ─── */
+
+// [day, hour, commits] — day 0=Sun
+export type PunchCardEntry = [number, number, number];
+
+// [unix_timestamp, additions, deletions] per week
+export type CodeFreqEntry = [number, number, number];
+
+export interface WeeklyActivity {
+  days: number[]; // Sun–Sat commit counts
+  total: number;
+  week: number;   // Unix timestamp
+}
+
+export interface ContributorStats {
+  author: { login: string; avatar_url: string };
+  total: number;
+  weeks: { w: number; a: number; d: number; c: number }[];
+}
+
+export async function fetchPunchCard(owner: string, repo: string, token?: string): Promise<PunchCardEntry[]> {
+  return fetchGitHub<PunchCardEntry[]>(`/repos/${owner}/${repo}/stats/punch_card`, token);
+}
+
+export async function fetchCodeFrequency(owner: string, repo: string, token?: string): Promise<CodeFreqEntry[]> {
+  return fetchGitHub<CodeFreqEntry[]>(`/repos/${owner}/${repo}/stats/code_frequency`, token);
+}
+
+export async function fetchCommitActivity(owner: string, repo: string, token?: string): Promise<WeeklyActivity[]> {
+  return fetchGitHub<WeeklyActivity[]>(`/repos/${owner}/${repo}/stats/commit_activity`, token);
+}
+
+export async function fetchContributorStats(owner: string, repo: string, token?: string): Promise<ContributorStats[]> {
+  return fetchGitHub<ContributorStats[]>(`/repos/${owner}/${repo}/stats/contributors`, token);
+}
