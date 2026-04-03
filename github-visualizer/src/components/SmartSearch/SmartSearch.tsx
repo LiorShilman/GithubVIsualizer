@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   Search, FileText, FolderOpen, X, Filter, Code, Image,
-  ArrowLeft, ExternalLink, ChevronDown, ChevronRight,
-  LayoutGrid, List, Folder,
+  ExternalLink, ChevronDown, ChevronRight,
+  LayoutGrid, List, Folder, PanelRightClose,
 } from 'lucide-react';
 import { codeToHtml } from 'shiki';
 import { useRepoStore } from '@/store/useRepoStore.ts';
@@ -150,7 +150,6 @@ export function SmartSearch() {
     return scored.sort((a, b) => b.score - a.score).slice(0, 300);
   }, [files, query, filterMode]);
 
-  // Group results by directory
   const dirGroups = useMemo<DirGroup[]>(() => {
     const map = new Map<string, SearchResult[]>();
     for (const r of results) {
@@ -167,7 +166,6 @@ export function SmartSearch() {
       .sort((a, b) => b.files.length - a.files.length);
   }, [results]);
 
-  // Extension distribution for visual overview
   const extDistribution = useMemo(() => {
     const map = new Map<string, { count: number; size: number }>();
     for (const r of results) {
@@ -185,7 +183,7 @@ export function SmartSearch() {
 
   const totalSize = useMemo(() => results.reduce((s, r) => s + r.size, 0), [results]);
 
-  // Viewer effect
+  // Viewer: load content + highlight
   useEffect(() => {
     if (!viewingFile) { setHighlightedHtml(''); return; }
     const ext = getExtension(viewingFile);
@@ -228,51 +226,12 @@ export function SmartSearch() {
     return `${repoInfo.html_url}/blob/${branch}/${path}`;
   };
 
-  // ---- File viewer ----
-  if (viewingFile) {
-    const ext = getExtension(viewingFile);
-    const isImage = IMAGE_EXTS.has(ext);
-    const content = fileContents.get(viewingFile);
-    const isLoading = loadingFiles.has(viewingFile);
-    const fileName = viewingFile.split('/').pop() || viewingFile;
-
-    return (
-      <div className={styles.container}>
-        <div className={styles.viewerHeader}>
-          <button className={styles.backBtn} onClick={() => setViewingFile(null)} title="Back to results">
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className={styles.viewerFileInfo}>
-            <span className={styles.viewerDot} style={{ background: getExtensionColor(ext) }} />
-            <span className={styles.viewerFileName}>{fileName}</span>
-            <span className={styles.viewerFilePath}>{viewingFile}</span>
-          </div>
-          <a className={styles.viewerGithubLink} href={githubUrl(viewingFile)} target="_blank" rel="noopener noreferrer">
-            <ExternalLink size={13} /> GitHub
-          </a>
-        </div>
-        <div className={styles.viewerContent}>
-          {isImage ? (
-            <div className={styles.imagePreview}>
-              <img src={getImageUrl(viewingFile)} alt={fileName} className={styles.previewImage} />
-              <div className={styles.imageInfo}>{fileName} &middot; .{ext}</div>
-            </div>
-          ) : isLoading ? (
-            <div className={styles.viewerLoading}>Loading file...</div>
-          ) : content ? (
-            <div className={styles.codeContent}>
-              <div dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
-            </div>
-          ) : (
-            <div className={styles.viewerLoading}>Failed to load file</div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Search results ----
-  const maxFileSize = Math.max(...results.map((r) => r.size), 1);
+  // Preview panel data
+  const previewExt = viewingFile ? getExtension(viewingFile) : '';
+  const previewIsImage = viewingFile ? IMAGE_EXTS.has(previewExt) : false;
+  const previewContent = viewingFile ? fileContents.get(viewingFile) : undefined;
+  const previewIsLoading = viewingFile ? loadingFiles.has(viewingFile) : false;
+  const previewFileName = viewingFile ? (viewingFile.split('/').pop() || viewingFile) : '';
 
   return (
     <div className={styles.container} onKeyDown={handleKeyDown}>
@@ -352,91 +311,127 @@ export function SmartSearch() {
         </div>
       </div>
 
-      {/* Results */}
-      <div className={styles.results}>
-        {viewMode === 'grouped' ? (
-          /* ---- Grouped by directory ---- */
-          dirGroups.map((group) => {
-            const isCollapsed = collapsedDirs.has(group.dir);
-            return (
-              <div key={group.dir} className={styles.dirGroup}>
-                <div className={styles.dirHeader} onClick={() => toggleDir(group.dir)}>
-                  {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                  <Folder size={14} className={styles.dirIcon} />
-                  <span className={styles.dirName}>{group.dir === '/' ? 'Root' : group.dir}</span>
-                  <span className={styles.dirMeta}>
-                    {group.files.length} files &middot; {formatSize(group.totalSize)}
-                  </span>
-                  {/* Mini extension badges */}
-                  <div className={styles.dirExts}>
-                    {[...new Set(group.files.map((f) => f.extension))].slice(0, 5).map((ext) => (
-                      <span key={ext} className={styles.dirExtBadge} style={{ color: getExtensionColor(ext), borderColor: `${getExtensionColor(ext)}40` }}>
-                        .{ext}
+      {/* ─── Split layout: results + preview ─── */}
+      <div className={`${styles.splitContainer} ${viewingFile ? styles.splitOpen : ''}`}>
+        {/* Left: results list */}
+        <div className={styles.resultsPane}>
+          <div className={styles.results}>
+            {viewMode === 'grouped' ? (
+              dirGroups.map((group) => {
+                const isCollapsed = collapsedDirs.has(group.dir);
+                return (
+                  <div key={group.dir} className={styles.dirGroup}>
+                    <div className={styles.dirHeader} onClick={() => toggleDir(group.dir)}>
+                      {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                      <Folder size={14} className={styles.dirIcon} />
+                      <span className={styles.dirName}>{group.dir === '/' ? 'Root' : group.dir}</span>
+                      <span className={styles.dirMeta}>
+                        {group.files.length} files &middot; {formatSize(group.totalSize)}
                       </span>
-                    ))}
-                  </div>
-                </div>
-                {!isCollapsed && (
-                  <div className={styles.dirFiles}>
-                    {group.files.map((result) => {
-                      const TypeIcon = getFileTypeIcon(result.extension);
-                      const isImage = IMAGE_EXTS.has(result.extension);
-                      const color = getExtensionColor(result.extension);
-                      const sizeRatio = result.size / maxFileSize;
-                      return (
-                        <div
-                          key={result.path}
-                          className={styles.fileRow}
-                          onClick={() => handleResultClick(result)}
-                        >
-                          <div className={styles.fileSizeBar}>
-                            <div className={styles.fileSizeFill} style={{ width: `${Math.max(3, sizeRatio * 100)}%`, background: color }} />
-                          </div>
-                          <div className={styles.fileIcon} style={{ color }}>
-                            <TypeIcon size={15} />
-                          </div>
-                          <span className={styles.fileName}>
-                            {highlightMatch(result.name, query)}
+                      <div className={styles.dirExts}>
+                        {[...new Set(group.files.map((f) => f.extension))].slice(0, 5).map((ext) => (
+                          <span key={ext} className={styles.dirExtBadge} style={{ color: getExtensionColor(ext), borderColor: `${getExtensionColor(ext)}40` }}>
+                            .{ext}
                           </span>
-                          <span className={styles.fileExt} style={{ color }}>.{result.extension}</span>
-                          <span className={styles.fileSize}>{formatSize(result.size)}</span>
-                          {isImage && <span className={styles.previewBadge}>img</span>}
-                        </div>
-                      );
-                    })}
+                        ))}
+                      </div>
+                    </div>
+                    {!isCollapsed && (
+                      <div className={styles.dirFiles}>
+                        {group.files.map((result) => {
+                          const TypeIcon = getFileTypeIcon(result.extension);
+                          const isImage = IMAGE_EXTS.has(result.extension);
+                          const color = getExtensionColor(result.extension);
+                          const isActive = viewingFile === result.path;
+                          return (
+                            <div
+                              key={result.path}
+                              className={`${styles.fileRow} ${isActive ? styles.fileRowActive : ''}`}
+                              onClick={() => handleResultClick(result)}
+                            >
+                              <div className={styles.fileIcon} style={{ color }}>
+                                <TypeIcon size={15} />
+                              </div>
+                              <span className={styles.fileName}>
+                                {highlightMatch(result.name, query)}
+                              </span>
+                              <span className={styles.fileExt} style={{ color }}>.{result.extension}</span>
+                              <span className={styles.fileSize}>{formatSize(result.size)}</span>
+                              {isImage && <span className={styles.previewBadge}>img</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
+                );
+              })
+            ) : (
+              <div className={styles.grid}>
+                {results.map((result) => {
+                  const TypeIcon = getFileTypeIcon(result.extension);
+                  const isImage = IMAGE_EXTS.has(result.extension);
+                  const color = getExtensionColor(result.extension);
+                  const isActive = viewingFile === result.path;
+                  return (
+                    <div
+                      key={result.path}
+                      className={`${styles.gridCard} ${isActive ? styles.gridCardActive : ''}`}
+                      onClick={() => handleResultClick(result)}
+                    >
+                      <div className={styles.gridCardIcon} style={{ background: `${color}12`, color }}>
+                        <TypeIcon size={22} />
+                      </div>
+                      <div className={styles.gridCardName}>{highlightMatch(result.name, query)}</div>
+                      <div className={styles.gridCardPath}>
+                        <FolderOpen size={9} /> {result.directory}
+                      </div>
+                      <div className={styles.gridCardFooter}>
+                        <span className={styles.gridCardExt} style={{ color, borderColor: `${color}30` }}>.{result.extension}</span>
+                        <span className={styles.gridCardSize}>{formatSize(result.size)}</span>
+                        {isImage && <span className={styles.previewBadge}>img</span>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })
-        ) : (
-          /* ---- Grid view ---- */
-          <div className={styles.grid}>
-            {results.map((result) => {
-              const TypeIcon = getFileTypeIcon(result.extension);
-              const isImage = IMAGE_EXTS.has(result.extension);
-              const color = getExtensionColor(result.extension);
-              return (
-                <div
-                  key={result.path}
-                  className={styles.gridCard}
-                  onClick={() => handleResultClick(result)}
-                >
-                  <div className={styles.gridCardIcon} style={{ background: `${color}12`, color }}>
-                    <TypeIcon size={22} />
-                  </div>
-                  <div className={styles.gridCardName}>{highlightMatch(result.name, query)}</div>
-                  <div className={styles.gridCardPath}>
-                    <FolderOpen size={9} /> {result.directory}
-                  </div>
-                  <div className={styles.gridCardFooter}>
-                    <span className={styles.gridCardExt} style={{ color, borderColor: `${color}30` }}>.{result.extension}</span>
-                    <span className={styles.gridCardSize}>{formatSize(result.size)}</span>
-                    {isImage && <span className={styles.previewBadge}>img</span>}
-                  </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: preview panel */}
+        {viewingFile && (
+          <div className={styles.previewPane}>
+            {/* Preview header */}
+            <div className={styles.previewHeader}>
+              <span className={styles.previewDot} style={{ background: getExtensionColor(previewExt) }} />
+              <span className={styles.previewFileName}>{previewFileName}</span>
+              <span className={styles.previewPath}>{viewingFile}</span>
+              <a className={styles.previewGithubLink} href={githubUrl(viewingFile)} target="_blank" rel="noopener noreferrer" title="Open on GitHub">
+                <ExternalLink size={12} />
+              </a>
+              <button className={styles.previewCloseBtn} onClick={() => setViewingFile(null)} title="Close preview (Esc)">
+                <PanelRightClose size={14} />
+              </button>
+            </div>
+
+            {/* Preview content */}
+            <div className={styles.previewContent}>
+              {previewIsImage ? (
+                <div className={styles.imagePreview}>
+                  <img src={getImageUrl(viewingFile)} alt={previewFileName} className={styles.previewImage} />
+                  <div className={styles.imageInfo}>{previewFileName} &middot; .{previewExt}</div>
                 </div>
-              );
-            })}
+              ) : previewIsLoading ? (
+                <div className={styles.previewLoading}>Loading file...</div>
+              ) : previewContent ? (
+                <div className={styles.codeContent}>
+                  <div dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
+                </div>
+              ) : (
+                <div className={styles.previewLoading}>Failed to load file</div>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -3,56 +3,12 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  background: var(--bg-primary);
 }
 
-.controls {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-secondary);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.controlLabel {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.branchCount {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-left: auto;
-}
-
-.loadBtn {
-  padding: 0.4rem 1rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.8rem;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.loadBtn:hover:not(:disabled) {
-  opacity: 0.85;
-}
-
-.loadBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.canvas {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* Empty / Loading states */
+/* ═══════════════════════════════════════
+   Empty / Loading Hero State
+   ═══════════════════════════════════════ */
 .emptyState {
   flex: 1;
   display: flex;
@@ -61,66 +17,546 @@
   justify-content: center;
   gap: 1rem;
   color: var(--text-muted);
+  padding: 3rem;
 }
 
+.emptyIcon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(20, 184, 166, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  color: var(--accent);
+  animation: floatIcon 3s ease-in-out infinite;
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.emptyTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.emptyDesc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.loadBtnHero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.7rem 2rem;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), #8B5CF6);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+}
+
+.loadBtnHero:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+}
+
+.loadBtnHero:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════
+   Stats Bar
+   ═══════════════════════════════════════ */
+.statsBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.06);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  transition: background 0.15s;
+}
+
+.statItem:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.statValue {
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.reloadBtn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reloadBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.reloadBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════
+   Branch Pills Bar
+   ═══════════════════════════════════════ */
+.branchBar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  overflow-x: auto;
+  align-items: center;
+}
+
+.branchBar::-webkit-scrollbar {
+  height: 3px;
+}
+
+.branchBar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.branchPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.branchPill:hover {
+  border-color: var(--pill-color, var(--text-muted));
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.branchPillActive {
+  color: var(--text-primary);
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.06);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.pillDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.3);
+}
+
+.pillName {
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.68rem;
+  letter-spacing: -0.2px;
+}
+
+.pillCount {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--text-muted);
+  min-width: 18px;
+  text-align: center;
+}
+
+.pillDefault {
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent), #8B5CF6);
+  color: #fff;
+}
+
+.pillEye {
+  opacity: 0.35;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════
+   Graph Area
+   ═══════════════════════════════════════ */
+.graphArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+.scrollArea {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.scrollArea::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollArea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollArea::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 3px;
+}
+
+.scrollArea::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+.graphContent {
+  position: relative;
+  min-width: max-content;
+}
+
+.graphSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════
+   Commit List
+   ═══════════════════════════════════════ */
+.commitList {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+}
+
+.commitRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px 0 4px;
+  position: relative;
+  transition: background 0.12s;
+  animation: fadeSlideIn 0.3s ease both;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.commitRow:hover {
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.commitRow::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.4;
+}
+
+.commitRowHead {
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.commitRowHead:hover {
+  background: rgba(99, 102, 241, 0.07);
+}
+
+.commitRowMerge {
+  background: rgba(99, 102, 241, 0.02);
+}
+
+/* Colored left accent */
+.rowAccent {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.commitRow:hover .rowAccent {
+  opacity: 0.6;
+}
+
+.commitRowHead .rowAccent {
+  opacity: 0.8;
+}
+
+/* ═══════════════════════════════════════
+   Row Type (badge / icon area)
+   ═══════════════════════════════════════ */
+.rowType {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 26px;
+}
+
+.branchTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: popIn 0.25s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.mergeTag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--accent);
+}
+
+.commitIcon {
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+
+/* ═══════════════════════════════════════
+   Commit Message
+   ═══════════════════════════════════════ */
+.commitMsg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: -0.1px;
+}
+
+.commitRowHead .commitMsg {
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════
+   Author
+   ═══════════════════════════════════════ */
+.commitAuthor {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  min-width: 100px;
+  max-width: 140px;
+}
+
+.authorAvatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.authorName {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.commitRow:hover .authorName {
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   SHA
+   ═══════════════════════════════════════ */
+.commitSha {
+  font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.06);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+}
+
+.commitSha:hover {
+  background: rgba(99, 102, 241, 0.14);
+}
+
+/* ═══════════════════════════════════════
+   Commit Time
+   ═══════════════════════════════════════ */
+.commitTime {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  opacity: 0.55;
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.commitRow:hover .commitTime {
+  opacity: 0.9;
+}
+
+/* ═══════════════════════════════════════
+   Minimap
+   ═══════════════════════════════════════ */
+.minimapWrap {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+
+.minimapWrap:hover {
+  opacity: 1;
+}
+
+.minimapLabel {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-left: 4px;
+  opacity: 0.5;
+}
+
+.minimap {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: box-shadow 0.2s;
+}
+
+.minimap:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ═══════════════════════════════════════
+   Loading state inline
+   ═══════════════════════════════════════ */
 .loadingState {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: var(--text-muted);
   font-size: 0.9rem;
-}
-
-/* Branch legend */
-.legend {
-  display: flex;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.legendItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.legendItem:hover {
-  border-color: var(--text-muted);
-}
-
-.legendItemActive {
-  border-color: var(--accent);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.legendDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.commitCount {
-  font-size: 0.6rem;
-  opacity: 0.5;
-  font-weight: 400;
-}
-
-.defaultBadge {
-  font-size: 0.6rem;
-  background: var(--accent);
-  color: #fff;
-  padding: 1px 5px;
-  border-radius: 6px;
-  font-weight: 700;
 }
