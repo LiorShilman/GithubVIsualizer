@@ -18,14 +18,23 @@ interface CommitNodeData {
   [key: string]: unknown;
 }
 
+const handleStyle = (color: string) => ({
+  background: color,
+  width: 8,
+  height: 8,
+  border: '2px solid var(--bg-primary)',
+});
+
 export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
   const d = data as CommitNodeData;
   const shortSha = d.sha.slice(0, 7);
   const firstLine = d.message.split('\n')[0];
-  const shortMessage = firstLine.length > 50 ? firstLine.slice(0, 50) + '...' : firstLine;
+  const shortMessage = firstLine.length > 50 ? `${firstLine.slice(0, 50)}...` : firstLine;
   const timeAgo = formatTimeAgo(d.date);
   const dateStr = new Date(d.date).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 
   const Icon = d.isMerge ? GitMerge : d.isFork ? GitBranch : GitCommit;
@@ -41,15 +50,16 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
         boxShadow: d.isHead
           ? `0 0 16px ${d.color}30, 0 4px 12px rgba(0,0,0,0.12)`
           : d.isMerge || d.isFork
-          ? `0 0 8px ${d.color}20, 0 2px 8px rgba(0,0,0,0.08)`
-          : '0 1px 4px rgba(0,0,0,0.06)',
+            ? `0 0 8px ${d.color}20, 0 2px 8px rgba(0,0,0,0.08)`
+            : '0 1px 4px rgba(0,0,0,0.06)',
         position: 'relative',
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: d.color, width: 8, height: 8, border: '2px solid var(--bg-primary)' }} />
-      <Handle type="target" position={Position.Left} id="left-in" style={{ background: d.color, width: 8, height: 8, border: '2px solid var(--bg-primary)' }} />
+      <Handle type="target" position={Position.Top} id="top-in" style={handleStyle(d.color)} />
+      <Handle type="target" position={Position.Left} id="left-in" style={handleStyle(d.color)} />
+      <Handle type="source" position={Position.Bottom} id="bottom-out" style={handleStyle(d.color)} />
+      <Handle type="source" position={Position.Right} id="right-out" style={handleStyle(d.color)} />
 
-      {/* Branch label for head commits */}
       {d.isHead && (
         <div
           style={{
@@ -73,7 +83,6 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
         </div>
       )}
 
-      {/* Fork indicator */}
       {d.isFork && !d.isHead && (
         <div
           style={{
@@ -94,7 +103,6 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
       )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        {/* Icon */}
         <div
           style={{
             width: 28,
@@ -114,7 +122,6 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Commit message */}
           <div
             style={{
               fontSize: '0.8rem',
@@ -128,7 +135,6 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
             {shortMessage}
           </div>
 
-          {/* Meta row */}
           <div
             style={{
               display: 'flex',
@@ -156,12 +162,12 @@ export const CommitNode = memo(function CommitNode({ data }: NodeProps) {
               <StyledAvatar name={d.author} size={14} />
               {d.author}
             </span>
-            <span style={{ opacity: 0.5 }} title={dateStr}>{timeAgo}</span>
+            <span style={{ opacity: 0.5 }} title={dateStr}>
+              {timeAgo}
+            </span>
           </div>
         </div>
       </div>
-
-      <Handle type="source" position={Position.Bottom} style={{ background: d.color, width: 8, height: 8, border: '2px solid var(--bg-primary)' }} />
     </div>
   );
 });

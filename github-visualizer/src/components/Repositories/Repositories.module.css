@@ -2,10 +2,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 1.5rem 1rem;
-  overflow: auto;
+  padding: 1.5rem 1rem 0;
 }
 
 .header {
@@ -13,13 +12,6 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 1rem;
-}
-
-.avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 2px solid var(--accent);
 }
 
 .username {
@@ -33,6 +25,7 @@
   color: var(--text-muted);
 }
 
+/* Filter bar */
 .filterBar {
   display: flex;
   gap: 8px;
@@ -64,41 +57,230 @@
   font-size: 0.8rem;
 }
 
+.viewToggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.viewBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.viewBtn:hover { color: var(--text-primary); }
+
+.viewBtnActive {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Language distribution overview */
+.langOverview {
+  margin-bottom: 1rem;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.distBar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.distSegment {
+  min-width: 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.distSegment:hover {
+  opacity: 0.75;
+  transform: scaleY(1.6);
+}
+
+.distLegend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.distLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.distLabel:hover { color: var(--text-primary); }
+.distLabel small { opacity: 0.5; }
+
+.distDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Results area */
+.resultsArea {
+  flex: 1;
+  overflow: auto;
+  padding-bottom: 2rem;
+}
+
+/* ---- Language grouped view ---- */
+.langGroup {
+  margin-bottom: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.langHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  background: var(--bg-secondary);
+}
+
+.langHeader:hover {
+  background: var(--bg-hover, var(--bg-secondary));
+  filter: brightness(1.05);
+}
+
+.langHeaderDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.langHeaderName {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.langHeaderCount {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.langHeaderStars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.langHeaderBar {
+  margin-left: auto;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.langHeaderBarFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.langGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+/* ---- Flat grid ---- */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
+/* ---- Repo card ---- */
 .card {
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px 16px;
   background: var(--bg-secondary);
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
 }
 
 .card:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
   transform: translateY(-2px);
 }
 
+.cardStripe {
+  width: 4px;
+  flex-shrink: 0;
+  border-radius: 10px 0 0 10px;
+}
+
+.cardContent {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
 .cardName {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--accent);
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .forkBadge {
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   background: var(--border);
   color: var(--text-muted);
   padding: 1px 6px;
@@ -107,7 +289,7 @@
 }
 
 .privateBadge {
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   background: #f59e0b30;
   color: #f59e0b;
   padding: 1px 6px;
@@ -116,7 +298,7 @@
 }
 
 .cardDesc {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-secondary);
   line-height: 1.4;
   display: -webkit-box;
@@ -127,9 +309,9 @@
 
 .cardMeta {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
   margin-top: auto;
 }
@@ -147,6 +329,12 @@
   gap: 3px;
 }
 
+.metaDate {
+  margin-left: auto;
+  opacity: 0.6;
+}
+
+/* Retry / empty / loading */
 .retryBtn {
   display: flex;
   align-items: center;
