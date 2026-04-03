@@ -63,7 +63,8 @@ function layoutArchitecture(
         id: comp.id,
         type: 'arch',
         position: { x: startX + i * NODE_X_GAP, y: tier * TIER_Y_GAP },
-        style: { width: 220, height: 170 },
+        width: 220,
+        height: 170,
         data: {
           label: comp.label,
           tech: comp.tech,
@@ -184,14 +185,15 @@ export function Architecture() {
         >
           <Controls />
           <MiniMap
-            nodeStrokeWidth={3}
             pannable
             zoomable
-            style={{ background: 'var(--bg-secondary)', borderRadius: 8 }}
-            maskColor="rgba(0,0,0,0.25)"
+            style={{ background: '#1a1a2e', borderRadius: 8 }}
+            maskColor="rgba(0,0,0,0.3)"
             nodeColor={(node) => {
-              return (node.data as { color?: string })?.color || 'var(--text-muted)';
+              const color = (node.data as Record<string, unknown>)?.color;
+              return typeof color === 'string' ? color : '#6366F1';
             }}
+            nodeStrokeColor="transparent"
           />
         </ReactFlow>
       </div>

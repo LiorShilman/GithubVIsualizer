@@ -131,7 +131,8 @@ function layoutBranchTree(
       id: commit.sha,
       type: 'commit',
       position: { x: lane * LANE_WIDTH, y: row * ROW_HEIGHT },
-      style: { width: 280, height: 70 },
+      width: 280,
+      height: 70,
       data: {
         sha: commit.sha,
         message: commit.commit.message,
@@ -374,14 +375,15 @@ export function BranchTree() {
         >
           <Controls />
           <MiniMap
-            nodeStrokeWidth={3}
             pannable
             zoomable
-            style={{ background: 'var(--bg-secondary)', borderRadius: 8 }}
-            maskColor="rgba(0,0,0,0.25)"
+            style={{ background: '#1a1a2e', borderRadius: 8 }}
+            maskColor="rgba(0,0,0,0.3)"
             nodeColor={(node) => {
-              return (node.data as { color?: string })?.color || 'var(--text-muted)';
+              const color = (node.data as Record<string, unknown>)?.color;
+              return typeof color === 'string' ? color : '#6366F1';
             }}
+            nodeStrokeColor="transparent"
           />
         </ReactFlow>
       </div>
