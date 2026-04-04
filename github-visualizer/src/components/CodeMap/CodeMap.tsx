@@ -3,7 +3,7 @@ import { X, Import, FunctionSquare, Type, Box, FileOutput, Variable, Loader2, Sp
 import { codeToHtml } from 'shiki';
 import { useRepoStore } from '@/store/useRepoStore.ts';
 import { getExtensionColor, getExtension } from '@/utils/fileIcons.ts';
-import { analyzeCode } from '@/services/aiAnalysis.ts';
+import { analyzeCode, analyzeFullFile } from '@/services/aiAnalysis.ts';
 import styles from './CodeMap.module.css';
 
 interface CodeMapProps {
@@ -510,6 +510,16 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
   const [aiLoading, setAiLoading] = useState<number | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  // Full-file AI state
+  const [fileAiResult, setFileAiResult] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(`ai_file_cache_${filePath}_${aiLanguage}`);
+    } catch { return null; }
+  });
+  const [fileAiLoading, setFileAiLoading] = useState(false);
+  const [fileAiOpen, setFileAiOpen] = useState(false);
+  const [fileAiError, setFileAiError] = useState<string | null>(null);
+
   // Reload cached AI results when language changes
   useEffect(() => {
     try {
@@ -523,6 +533,13 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
     } catch {
       setAiResult(new Map());
     }
+  }, [aiLanguage, filePath]);
+
+  // Reload full-file AI cache when language changes
+  useEffect(() => {
+    try {
+      setFileAiResult(localStorage.getItem(`ai_file_cache_${filePath}_${aiLanguage}`));
+    } catch { setFileAiResult(null); }
   }, [aiLanguage, filePath]);
 
   const content = fileContents.get(filePath);
@@ -641,12 +658,48 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
     }
   }, [sections, aiApiKey, aiModel, aiLanguage, filePath, aiResult, saveAiCache]);
 
+  const handleFileAiExplain = useCallback(async (forceReanalyze = false) => {
+    if (!content || !aiApiKey) return;
+
+    if (fileAiResult && !forceReanalyze) {
+      setFileAiOpen(true);
+      return;
+    }
+
+    setFileAiOpen(true);
+    setFileAiLoading(true);
+    setFileAiError(null);
+
+    let accumulated = '';
+
+    try {
+      await analyzeFullFile(
+        content,
+        filePath,
+        aiApiKey,
+        aiModel,
+        (chunk) => {
+          accumulated += chunk;
+          setFileAiResult(accumulated);
+        },
+        aiLanguage
+      );
+      try {
+        localStorage.setItem(`ai_file_cache_${filePath}_${aiLanguage}`, accumulated);
+      } catch { /* ignore quota */ }
+    } catch (err) {
+      setFileAiError(err instanceof Error ? err.message : 'AI analysis failed');
+    } finally {
+      setFileAiLoading(false);
+    }
+  }, [content, aiApiKey, aiModel, aiLanguage, filePath, fileAiResult]);
+
   if (isLoading) {
     return (
       <div className={styles.overlay}>
         <div className={styles.container}>
           <div className={styles.loading}>
-            <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+            <Loader2 size={24} className={styles.spinIcon} />
             Loading file...
           </div>
         </div>
@@ -668,7 +721,24 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
               <span className={styles.filePath}>{filePath}</span>
             </div>
           </div>
-          <button className={styles.closeBtn} onClick={onClose}><X size={18} /></button>
+          <div className={styles.headerActions}>
+            {aiApiKey && (
+              <button
+                className={`${styles.fileAiBtn} ${fileAiResult ? styles.fileAiBtnDone : ''}`}
+                onClick={() => handleFileAiExplain()}
+                disabled={fileAiLoading}
+                title="Explain entire file with AI"
+              >
+                {fileAiLoading ? (
+                  <Loader2 size={14} className={styles.spinIcon} />
+                ) : (
+                  <Sparkles size={14} />
+                )}
+                <span>Explain File</span>
+              </button>
+            )}
+            <button className={styles.closeBtn} onClick={onClose} title="Close"><X size={18} /></button>
+          </div>
         </div>
 
         {/* Overview bar */}
@@ -705,6 +775,46 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
             })}
           </div>
         </div>
+
+        {/* Full-file AI panel */}
+        {fileAiOpen && (fileAiResult || fileAiLoading) && (
+          <div className={styles.fileAiPanel}>
+            <div className={styles.aiPanelHeader}>
+              <Sparkles size={14} />
+              <span>Full File Analysis</span>
+              {fileAiLoading && (
+                <Loader2 size={12} className={styles.spinIcon} />
+              )}
+              {!fileAiLoading && fileAiResult && (
+                <button
+                  className={styles.aiCloseBtn}
+                  onClick={() => handleFileAiExplain(true)}
+                  title="Re-analyze"
+                >
+                  <RefreshCw size={12} />
+                </button>
+              )}
+              <button
+                className={styles.aiCloseBtn}
+                onClick={() => setFileAiOpen(false)}
+                title="Close"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <div
+              className={styles.aiContent}
+              dir={aiLanguage === 'he' ? 'rtl' : 'ltr'}
+              dangerouslySetInnerHTML={{
+                __html: renderMarkdown(fileAiResult || ''),
+              }}
+            />
+          </div>
+        )}
+
+        {fileAiOpen && fileAiError && (
+          <div className={styles.aiError}>{fileAiError}</div>
+        )}
 
         {/* Sections */}
         <div className={styles.sections}>
@@ -750,7 +860,7 @@ export function CodeMap({ filePath, onClose }: CodeMapProps) {
                       title="Explain with AI"
                     >
                       {isAiLoading ? (
-                        <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                        <Loader2 size={13} className={styles.spinIcon} />
                       ) : (
                         <Sparkles size={13} />
                       )}

@@ -172,6 +172,51 @@ async function callOpenAI(
   }
 }
 
+function buildFilePrompt(code: string, filePath: string, language: AILanguage): string {
+  const langInstruction = language === 'he'
+    ? 'Respond entirely in Hebrew (עברית). Use right-to-left text. Keep code terms and variable names in English but explain everything else in Hebrew.'
+    : 'Respond in English.';
+
+  return `You are a senior code analysis expert. Analyze the following **complete file** and provide a comprehensive explanation that helps a developer understand the entire file quickly.
+
+${langInstruction}
+
+**File:** \`${filePath}\`
+
+\`\`\`
+${code}
+\`\`\`
+
+Provide your analysis in this structure:
+1. **File Purpose** — What is this file responsible for? What role does it play in the project? (2-3 sentences)
+2. **Architecture Overview** — How is the file structured? What are the main building blocks (components, functions, classes, exports)?
+3. **Key Functionality** — Explain each major function/component/class and what it does
+4. **Data Flow** — How does data flow through this file? What are the inputs and outputs?
+5. **Dependencies & Integration** — What external libraries, APIs, or other files does this depend on? How does it connect to the rest of the project?
+6. **Patterns & Techniques** — Notable design patterns, React patterns, or coding techniques used
+7. **Potential Improvements** — Suggestions for refactoring, performance, or code quality
+
+Keep the explanation thorough but readable. Use bullet points and clear headers. If the file is large, focus on the most important parts.`;
+}
+
+export async function analyzeFullFile(
+  code: string,
+  filePath: string,
+  apiKey: string,
+  model: AIModel,
+  onChunk: (text: string) => void,
+  language: AILanguage = 'en'
+): Promise<void> {
+  const prompt = buildFilePrompt(code, filePath, language);
+  const provider = getProviderForModel(model);
+
+  if (provider === 'claude') {
+    await callClaude(apiKey, model, prompt, onChunk);
+  } else {
+    await callOpenAI(apiKey, model, prompt, onChunk);
+  }
+}
+
 export async function analyzeCode(
   code: string,
   sectionName: string,

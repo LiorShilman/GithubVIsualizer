@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
 import { codeToHtml } from 'shiki';
 import { useRepoStore } from '@/store/useRepoStore.ts';
 import { getExtension } from '@/utils/fileIcons.ts';
+import { analyzeFullFile } from '@/services/aiAnalysis.ts';
 import styles from './FileTree.module.css';
 
 const INITIAL_LINES = 500;
@@ -26,9 +27,18 @@ export function CodeViewer() {
   const repoInfo = useRepoStore((s) => s.repoInfo);
   const branch = useRepoStore((s) => s.branch);
 
+  const aiModel = useRepoStore((s) => s.aiModel);
+  const aiLanguage = useRepoStore((s) => s.aiLanguage);
+  const getActiveAiKey = useRepoStore((s) => s.getActiveAiKey);
+
   const [highlightedHtml, setHighlightedHtml] = useState('');
   const [showAll, setShowAll] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
+
+  const [fileAiResult, setFileAiResult] = useState('');
+  const [fileAiLoading, setFileAiLoading] = useState(false);
+  const [fileAiOpen, setFileAiOpen] = useState(false);
+  const [fileAiError, setFileAiError] = useState('');
 
   const content = selectedFile ? fileContents.get(selectedFile) : undefined;
   const isLoading = selectedFile ? loadingFiles.has(selectedFile) : false;
@@ -36,7 +46,47 @@ export function CodeViewer() {
   useEffect(() => {
     setShowAll(false);
     setHighlightedHtml('');
+    setFileAiResult('');
+    setFileAiLoading(false);
+    setFileAiOpen(false);
+    setFileAiError('');
   }, [selectedFile]);
+
+  const handleFileAiExplain = useCallback(async () => {
+    if (!content || !selectedFile) return;
+    const key = getActiveAiKey();
+    if (!key) {
+      setFileAiError('Please set an API key in settings first.');
+      setFileAiOpen(true);
+      return;
+    }
+
+    const cacheKey = `ai_file_cache_${selectedFile}_${aiLanguage}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setFileAiResult(cached);
+      setFileAiOpen(true);
+      return;
+    }
+
+    setFileAiLoading(true);
+    setFileAiOpen(true);
+    setFileAiResult('');
+    setFileAiError('');
+
+    let full = '';
+    try {
+      await analyzeFullFile(content, selectedFile, key, aiModel, (chunk) => {
+        full += chunk;
+        setFileAiResult(full);
+      }, aiLanguage);
+      localStorage.setItem(cacheKey, full);
+    } catch (e: unknown) {
+      setFileAiError(e instanceof Error ? e.message : 'AI analysis failed');
+    } finally {
+      setFileAiLoading(false);
+    }
+  }, [content, selectedFile, aiModel, aiLanguage, getActiveAiKey]);
 
   useEffect(() => {
     if (!content || !selectedFile) return;
@@ -97,15 +147,59 @@ export function CodeViewer() {
     <div className={styles.viewerPanel}>
       <div className={styles.codeHeader}>
         <span className={styles.codeHeaderPath}>{selectedFile}</span>
-        <a
-          className={styles.githubLink}
-          href={githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <ExternalLink size={13} /> GitHub
-        </a>
+        <div className={styles.codeHeaderActions}>
+          <button
+            className={`${styles.fileAiBtn} ${fileAiResult && !fileAiLoading ? styles.fileAiBtnDone : ''}`}
+            onClick={handleFileAiExplain}
+            disabled={fileAiLoading}
+            title="Explain file with AI"
+          >
+            {fileAiLoading
+              ? <Loader2 size={13} className={styles.spinIcon} />
+              : <Sparkles size={13} />}
+            {fileAiResult && !fileAiLoading ? 'Explained' : 'Explain File'}
+          </button>
+          <a
+            className={styles.githubLink}
+            href={githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ExternalLink size={13} /> GitHub
+          </a>
+        </div>
       </div>
+
+      {fileAiOpen && (
+        <div className={styles.fileAiPanel}>
+          <div className={styles.fileAiPanelHeader}>
+            <Sparkles size={13} />
+            AI File Analysis
+            <button type="button" className={styles.fileAiCloseBtn} onClick={() => setFileAiOpen(false)} title="Close AI panel">
+              <X size={13} />
+            </button>
+          </div>
+          {fileAiError && <div className={styles.fileAiError}>{fileAiError}</div>}
+          {fileAiResult && (
+            <div
+              className={styles.fileAiContent}
+              dir={aiLanguage === 'he' ? 'rtl' : 'ltr'}
+              dangerouslySetInnerHTML={{
+                __html: fileAiResult
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/`([^`]+)`/g, '<code>$1</code>')
+                  .replace(/\n/g, '<br/>'),
+              }}
+            />
+          )}
+          {fileAiLoading && !fileAiResult && (
+            <div className={styles.fileAiLoading}>
+              <Loader2 size={16} className={styles.spinIcon} /> Analyzing file...
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={styles.codeContent} ref={codeRef}>
         <div dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
         {isTruncated && (

@@ -160,3 +160,133 @@
   flex: 1;
   color: var(--text-muted);
 }
+
+/* Code Header Actions */
+.codeHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.fileAiBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: rgba(139, 92, 246, 0.06);
+  color: #8B5CF6;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.fileAiBtn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.fileAiBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fileAiBtnDone {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+.spinIcon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* File AI Panel */
+.fileAiPanel {
+  border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.04), transparent);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.fileAiPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8B5CF6;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.fileAiCloseBtn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+}
+
+.fileAiCloseBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.fileAiContent {
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--text-primary);
+  overflow-x: auto;
+}
+
+.fileAiContent strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.fileAiContent code {
+  background: var(--bg-secondary);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-family: 'Fira Code', monospace;
+  color: #8B5CF6;
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+.fileAiContent[dir="rtl"] {
+  text-align: right;
+}
+
+.fileAiError {
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: #ef4444;
+  border-top: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.fileAiLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
