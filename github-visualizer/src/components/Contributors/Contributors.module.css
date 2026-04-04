@@ -15,7 +15,7 @@
 }
 
 .title {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
   display: flex;
@@ -25,10 +25,37 @@
 
 .stats {
   margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
+/* Legend */
+.legend {
+  display: flex;
+  gap: 14px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Canvas */
 .canvasWrap {
   flex: 1;
   position: relative;
@@ -42,26 +69,35 @@
   background: var(--bg-primary);
 }
 
-/* Sidebar contributor list */
+/* Sidebar */
 .sidebar {
   position: absolute;
-  top: 48px;
+  top: 80px;
   right: 0;
-  width: 240px;
-  max-height: calc(100% - 48px);
+  width: 260px;
+  max-height: calc(100% - 80px);
   overflow-y: auto;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border);
-  padding: 8px 0;
-  opacity: 0.92;
+  border-top-left-radius: 8px;
+  padding: 0 0 8px;
+  opacity: 0.94;
+}
+
+.sidebarTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
 
 .contribRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px;
-  font-size: 0.75rem;
+  padding: 6px 12px;
   transition: background 0.15s;
 }
 
@@ -70,31 +106,61 @@
 }
 
 .rank {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  width: 22px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  width: 24px;
   text-align: right;
+  flex-shrink: 0;
+  font-weight: 600;
 }
 
 .avatar {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   flex-shrink: 0;
+  border: 1.5px solid var(--border);
+}
+
+.contribInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .login {
   color: var(--text-primary);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.8rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
+}
+
+.contribMeta {
+  display: flex;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.addStat {
+  color: #22C55E;
+  font-family: 'Fira Code', monospace;
+  font-weight: 600;
+}
+
+.delStat {
+  color: #EF4444;
+  font-family: 'Fira Code', monospace;
+  font-weight: 600;
 }
 
 .count {
-  color: var(--text-muted);
-  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
   white-space: nowrap;
 }
 
@@ -104,23 +170,34 @@
   z-index: 1000;
   background: var(--bg-primary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 14px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   pointer-events: none;
 }
 
 .tooltipTitle {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .tooltipMeta {
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  align-items: center;
 }
+
+.tooltipBadge {
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+.tooltipAdd { color: #22C55E; }
+.tooltipDel { color: #EF4444; }
 
 /* Loading */
 .loadingState {
@@ -129,8 +206,22 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  color: var(--text-muted);
+  gap: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.loadingSub {
+  font-size: 0.82rem;
+  opacity: 0.6;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .pulse {
@@ -140,4 +231,8 @@
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
+}
+
+.errorColor {
+  color: var(--error, #EF4444);
 }
